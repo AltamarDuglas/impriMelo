@@ -8,14 +8,15 @@ const AuthContext = createContext(null);
  * Sigue el principio de Responsabilidad Única al manejar solo la identidad.
  */
 export const AuthProvider = ({ children }) => {
-  const [user, setUser] = useState(null);
   const [token, setToken] = useState(localStorage.getItem('token'));
+  const [user, setUser] = useState(() => {
+    const savedUser = localStorage.getItem('user');
+    return savedUser ? JSON.parse(savedUser) : null;
+  });
   const [loading, setLoading] = useState(true);
 
   useEffect(() => {
     if (token) {
-      // Aquí podríamos validar el token con el backend en el futuro (/auth/me)
-      // Por ahora confiamos en la existencia del token y guardamos el email si estuviera disponible
       localStorage.setItem('token', token);
     } else {
       localStorage.removeItem('token');
@@ -23,6 +24,12 @@ export const AuthProvider = ({ children }) => {
     }
     setLoading(false);
   }, [token]);
+
+  useEffect(() => {
+    if (user) {
+      localStorage.setItem('user', JSON.stringify(user));
+    }
+  }, [user]);
 
   const login = async (email, password) => {
     const formData = new FormData();
@@ -41,7 +48,10 @@ export const AuthProvider = ({ children }) => {
 
     const data = await response.json();
     setToken(data.access_token);
-    setUser({ email }); // Guardamos el email localmente
+    setUser({ 
+      email: data.email, 
+      is_admin: data.is_admin 
+    }); 
     return data;
   };
 

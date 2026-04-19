@@ -1,5 +1,5 @@
 import React, { useState, useEffect } from 'react';
-import { ShoppingBag, Clock, CheckCircle, Printer as PrinterIcon, Trash2, ChevronRight } from 'lucide-react';
+import { ShoppingBag, Clock, CheckCircle, Printer as PrinterIcon, ChevronRight, Download, FileText, Loader2, Trash2, XCircle, Package, DollarSign, Box, Plus, Minus } from 'lucide-react';
 import PdfConverter from '../pdf-converter/PdfConverter';
 import { useAuth } from '../../context/AuthContext';
 
@@ -12,7 +12,10 @@ const AdminDashboard = () => {
   const [orders, setOrders] = useState([]);
   const [selectedOrder, setSelectedOrder] = useState(null);
   const [loading, setLoading] = useState(true);
-  const [viewMode, setViewMode] = useState('pending'); // 'pending' o 'completed'
+  const [downloading, setDownloading] = useState(false); // Estado para descarga directa de PDFs
+  const [viewMode, setViewMode] = useState('pending'); // 'pending', 'printed', 'delivered', 'cancelled', 'inventory'
+  const [inventory, setInventory] = useState([]);
+  const [loadingInventory, setLoadingInventory] = useState(false);
   const { token } = useAuth();
 
   // Cargar pedidos desde el backend
@@ -33,11 +36,50 @@ const AdminDashboard = () => {
     }
   };
 
+  const fetchInventory = async () => {
+    setLoadingInventory(true);
+    try {
+      const response = await fetch('http://127.0.0.1:8000/api/v1/checkout/inventory', {
+         headers: { 'Authorization': `Bearer ${token}` }
+      });
+      if (response.ok) {
+        const data = await response.json();
+        setInventory(data);
+      }
+    } catch (err) {
+      console.error("Error cargando inventario:", err);
+    } finally {
+      setLoadingInventory(false);
+    }
+  };
+
   useEffect(() => {
-    if (token) fetchOrders();
+    if (token) {
+      fetchOrders();
+      fetchInventory();
+    }
   }, [token]);
 
+  const handleUpdateStock = async (name, amount, reason) => {
+    try {
+      const response = await fetch('http://127.0.0.1:8000/api/v1/checkout/inventory/update', {
+        method: 'POST',
+        headers: { 
+          'Authorization': `Bearer ${token}`,
+          'Content-Type': 'application/json'
+        },
+        body: JSON.stringify({ name, quantity: amount, unit: 'unidades', reason })
+      });
+      if (response.ok) fetchInventory();
+    } catch (err) {
+      alert("Error al actualizar stock");
+    }
+  };
+
+  const totalEarnings = orders.reduce((acc, o) => acc + (o.total_price || 0), 0);
+
   const handleStatusChange = async (id, newStatus) => {
+    if (!window.confirm(`¿Cambiar estado a ${newStatus}?`)) return;
     try {
       const formData = new FormData();
       formData.append('status', newStatus);
@@ -49,7 +91,6 @@ const AdminDashboard = () => {
       });
 
       if (response.ok) {
-        // Actualizar lista local
         setOrders(orders.map(o => o.id === id ? { ...o, status: newStatus } : o));
         if (selectedOrder?.id === id) setSelectedOrder(null);
       }
@@ -58,9 +99,73 @@ const AdminDashboard = () => {
     }
   };
 
+  const handleDeleteOrder = async (id) => {
+    if (!window.confirm('¿Estás seguro de eliminar este pedido permanentemente? Esta acción borrará los archivos físicos.')) return;
+    try {
+      const response = await fetch(`http://127.0.0.1:8000/api/v1/orders/${id}`, {
+        method: 'DELETE',
+        headers: { 'Authorization': `Bearer ${token}` }
+      });
+
+      if (response.ok) {
+        setOrders(orders.filter(o => o.id !== id));
+        if (selectedOrder?.id === id) setSelectedOrder(null);
+      }
+    } catch (err) {
+      console.error("Error al eliminar pedido:", err);
+    }
+  };
+
   const handleSelectOrder = (order) => {
     setSelectedOrder(order);
     window.scrollTo({ top: document.querySelector('#converter-section').offsetTop - 100, behavior: 'smooth' });
+  };
+
+  /**
+   * Descarga directa de un archivo de pedido desde el backend.
+   * Usamos fetch con token JWT en lugar de un <a href> porque el endpoint
+   * /serve-order está protegido con autenticación de administrador.
+   * Para PDFs ya procesados: los descarga tal cual.
+   * Para imágenes: el backend aplica pipeline sRGB y devuelve un PDF.
+   */
+  const downloadOrderFile = async (order) => {
+    setDownloading(true);
+    try {
+      const response = await fetch(`http://127.0.0.1:8000/api/v1/pdf/serve-order/${order.id}`, {
+        headers: { 'Authorization': `Bearer ${token}` }
+      });
+
+      if (!response.ok) {
+        const data = await response.json().catch(() => ({}));
+        alert(data.detail || 'Error al descargar el archivo.');
+        return;
+      }
+
+      // Convertimos la respuesta a blob y forzamos la descarga en el navegador
+      const blob = await response.blob();
+      const url = window.URL.createObjectURL(blob);
+      const link = document.createElement('a');
+      link.href = url;
+      
+      // Intentamos leer el nombre del archivo desde el header Content-Disposition
+      const disposition = response.headers.get('content-disposition');
+      let filename = `pedido_${order.id}.pdf`;
+      if (disposition) {
+        const match = disposition.match(/filename="(.+?)"/);
+        if (match) filename = match[1];
+      }
+      
+      link.setAttribute('download', filename);
+      document.body.appendChild(link);
+      link.click();
+      link.remove();
+      window.URL.revokeObjectURL(url); // Liberamos memoria
+    } catch (err) {
+      console.error('Error descargando archivo:', err);
+      alert('No se pudo conectar con el servidor.');
+    } finally {
+      setDownloading(false);
+    }
   };
 
   const filteredOrders = orders.filter(o => o.status === viewMode);
@@ -72,24 +177,124 @@ const AdminDashboard = () => {
           <h1 className="text-3xl font-black text-slate-900">Panel de Control</h1>
           <p className="text-slate-500 font-medium">Gestiona tu flujo de trabajo en tiempo real.</p>
         </div>
-        <div className="flex bg-white p-1 rounded-2xl border border-slate-100 shadow-sm">
+        <div className="flex bg-white p-1 rounded-2xl border border-slate-100 shadow-sm overflow-x-auto max-w-full">
           <button 
             onClick={() => setViewMode('pending')}
-            className={`px-6 py-3 rounded-xl text-sm font-black transition-all ${viewMode === 'pending' ? 'bg-blue-600 text-white shadow-lg shadow-blue-100' : 'text-slate-400 hover:text-slate-600'}`}
+            className={`px-4 py-2.5 rounded-xl text-xs font-black transition-all whitespace-nowrap ${viewMode === 'pending' ? 'bg-blue-600 text-white shadow-lg' : 'text-slate-400 hover:text-slate-600'}`}
           >
-            Pendientes ({orders.filter(o => o.status === 'pending').length})
+            Activos ({orders.filter(o => o.status === 'pending').length})
           </button>
           <button 
-            onClick={() => setViewMode('completed')}
-            className={`px-6 py-3 rounded-xl text-sm font-black transition-all ${viewMode === 'completed' ? 'bg-green-600 text-white shadow-lg shadow-green-100' : 'text-slate-400 hover:text-slate-600'}`}
+            onClick={() => setViewMode('printed')}
+            className={`px-4 py-2.5 rounded-xl text-xs font-black transition-all whitespace-nowrap ${viewMode === 'printed' ? 'bg-indigo-600 text-white shadow-lg' : 'text-slate-400 hover:text-slate-600'}`}
           >
-            Historial ({orders.filter(o => o.status === 'completed').length})
+            Impresos ({orders.filter(o => o.status === 'printed').length})
+          </button>
+          <button 
+            onClick={() => setViewMode('delivered')}
+            className={`px-4 py-2.5 rounded-xl text-xs font-black transition-all whitespace-nowrap ${viewMode === 'delivered' ? 'bg-green-600 text-white shadow-lg' : 'text-slate-400 hover:text-slate-600'}`}
+          >
+            Entregados ({orders.filter(o => o.status === 'delivered').length})
+          </button>
+          <button 
+            onClick={() => setViewMode('cancelled')}
+            className={`px-4 py-2.5 rounded-xl text-xs font-black transition-all whitespace-nowrap ${viewMode === 'cancelled' ? 'bg-red-600 text-white shadow-lg' : 'text-slate-400 hover:text-slate-600'}`}
+          >
+            Cancelados ({orders.filter(o => o.status === 'cancelled').length})
+          </button>
+          <div className="w-px h-6 bg-slate-100 mx-2 self-center" />
+          <button 
+            onClick={() => setViewMode('inventory')}
+            className={`px-4 py-2.5 rounded-xl text-xs font-black transition-all whitespace-nowrap ${viewMode === 'inventory' ? 'bg-slate-900 text-white shadow-lg' : 'text-slate-400 hover:text-slate-600'}`}
+          >
+            Caja e Inventario
           </button>
         </div>
       </header>
 
       <div className="grid grid-cols-1 lg:grid-cols-3 gap-8">
-        {/* Lista de Pedidos */}
+        {viewMode === 'inventory' ? (
+          <div className="lg:col-span-3 space-y-10 animate-in fade-in slide-in-from-bottom-4">
+             {/* Resumen Financiero */}
+             <div className="grid grid-cols-1 md:grid-cols-3 gap-6">
+                <div className="bg-gradient-to-br from-green-600 to-green-700 p-8 rounded-[2.5rem] text-white shadow-xl">
+                   <div className="flex justify-between items-start mb-6">
+                      <div className="p-3 bg-white/20 rounded-2xl">
+                         <DollarSign className="w-8 h-8" />
+                      </div>
+                      <span className="text-[10px] font-black uppercase tracking-[0.2em] opacity-80">Recaudación Total</span>
+                   </div>
+                   <p className="text-4xl font-black tracking-tighter mb-1">${totalEarnings.toLocaleString()}</p>
+                   <p className="text-xs font-bold opacity-70">Total acumulado de {orders.length} pedidos.</p>
+                </div>
+
+                <div className="bg-white p-8 rounded-[2.5rem] shadow-sm border border-slate-100 flex flex-col justify-center">
+                   <h4 className="text-[10px] font-black text-slate-400 uppercase tracking-widest mb-2">Pedidos Entregados</h4>
+                   <p className="text-3xl font-black text-slate-900">{orders.filter(o => o.status === 'delivered').length}</p>
+                   <div className="w-full h-1.5 bg-slate-100 rounded-full mt-4 overflow-hidden">
+                      <div 
+                        className="h-full bg-green-500" 
+                        style={{ width: `${(orders.filter(o => o.status === 'delivered').length / (orders.length || 1)) * 100}%` }}
+                      />
+                   </div>
+                </div>
+
+                <div className="bg-white p-8 rounded-[2.5rem] shadow-sm border border-slate-100 flex flex-col justify-center">
+                   <h4 className="text-[10px] font-black text-slate-400 uppercase tracking-widest mb-2">Pedidos Pendientes</h4>
+                   <p className="text-3xl font-black text-slate-900">{orders.filter(o => o.status === 'pending').length}</p>
+                   <div className="w-full h-1.5 bg-slate-100 rounded-full mt-4 overflow-hidden">
+                      <div 
+                        className="h-full bg-blue-500" 
+                        style={{ width: `${(orders.filter(o => o.status === 'pending').length / (orders.length || 1)) * 100}%` }}
+                      />
+                   </div>
+                </div>
+             </div>
+
+             {/* Gestión de Inventario */}
+             <div className="space-y-6">
+                <h2 className="text-2xl font-black text-slate-800 flex items-center gap-3">
+                   <Box className="w-7 h-7 text-slate-900" /> Suministros Melo
+                </h2>
+                <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-6">
+                   {['Papel Normal', 'Papel Foto', 'Tinta Cyan', 'Tinta Magenta', 'Tinta Yellow', 'Tinta Black'].map(item => {
+                     const current = inventory.find(i => i.name === item);
+                     return (
+                       <div key={item} className="bg-white p-6 rounded-3xl shadow-md border border-slate-100 group hover:border-pink-200 transition-all">
+                          <div className="flex items-center justify-between mb-4">
+                             <div className="p-2 bg-slate-50 rounded-xl text-slate-400 group-hover:bg-pink-50 group-hover:text-pink-500 transition-colors">
+                                <Box className="w-5 h-5" />
+                             </div>
+                             <span className="text-[10px] font-black text-slate-300 uppercase">Stock</span>
+                          </div>
+                          <h4 className="text-xs font-black text-slate-800 uppercase tracking-wide mb-1">{item}</h4>
+                          <p className="text-3xl font-black text-slate-900 mb-6">
+                            {current?.quantity || 0} <span className="text-xs font-bold text-slate-300">{current?.unit || 'unid'}</span>
+                          </p>
+                          
+                          <div className="flex gap-2">
+                             <button 
+                                onClick={() => handleUpdateStock(item, 50, 'Compra manual')}
+                                className="flex-1 py-2.5 bg-slate-50 hover:bg-green-50 hover:text-green-600 rounded-xl text-[10px] font-black uppercase transition-all flex items-center justify-center gap-1"
+                             >
+                                <Plus className="w-3 h-3" /> Añadir
+                             </button>
+                             <button 
+                                onClick={() => handleUpdateStock(item, -10, 'Gasto manual')}
+                                className="flex-1 py-2.5 bg-slate-50 hover:bg-red-50 hover:text-red-600 rounded-xl text-[10px] font-black uppercase transition-all flex items-center justify-center gap-1"
+                             >
+                                <Minus className="w-3 h-3" /> Gastar
+                             </button>
+                          </div>
+                       </div>
+                     )
+                   })}
+                </div>
+             </div>
+          </div>
+        ) : (
+          <>
+            {/* Lista de Pedidos */}
         <div className="lg:col-span-1 space-y-4">
           <h2 className="text-xl font-bold text-slate-800 flex items-center gap-2">
             {viewMode === 'pending' ? <Clock className="w-5 h-5 text-blue-600" /> : <CheckCircle className="w-5 h-5 text-green-600" />}
@@ -133,30 +338,54 @@ const AdminDashboard = () => {
                         </span>
                       </div>
                       <div className="mt-3 flex items-center justify-between">
-                        <span className={`inline-flex items-center gap-1 px-2 py-0.5 rounded-full text-[9px] font-black uppercase tracking-wider ${
-                          order.status === 'pending' ? 'bg-amber-50 text-amber-600' : 'bg-green-50 text-green-600'
-                        }`}>
-                          {order.status === 'pending' ? 'Pendiente' : 'Completado'}
-                        </span>
+                        <div className="flex gap-1">
+                          <span className={`inline-flex items-center gap-1 px-2 py-0.5 rounded-full text-[9px] font-black uppercase tracking-wider ${
+                            order.status === 'pending' ? 'bg-blue-50 text-blue-600' : 
+                            order.status === 'printed' ? 'bg-indigo-50 text-indigo-600' :
+                            order.status === 'delivered' ? 'bg-green-50 text-green-600' : 'bg-red-50 text-red-600'
+                          }`}>
+                            {order.status === 'pending' ? 'Activo' : 
+                             order.status === 'printed' ? 'Impreso' :
+                             order.status === 'delivered' ? 'Entregado' : 'Cancelado'}
+                          </span>
+                        </div>
                         
-                        {order.status === 'pending' && (
+                        <div className="flex gap-1 opacity-0 group-hover:opacity-100 transition-all">
+                          {order.status === 'pending' && (
+                            <button 
+                              onClick={(e) => { e.stopPropagation(); handleStatusChange(order.id, 'printed'); }}
+                              className="p-1.5 text-slate-400 hover:text-indigo-600 hover:bg-indigo-50 rounded-lg"
+                              title="Marcar como impreso"
+                            >
+                              <PrinterIcon className="w-4 h-4" />
+                            </button>
+                          )}
+                          {order.status === 'printed' && (
+                            <button 
+                              onClick={(e) => { e.stopPropagation(); handleStatusChange(order.id, 'delivered'); }}
+                              className="p-1.5 text-slate-400 hover:text-green-600 hover:bg-green-50 rounded-lg"
+                              title="Marcar como entregado"
+                            >
+                              <Package className="w-4 h-4" />
+                            </button>
+                          )}
+                          {order.status !== 'cancelled' && order.status !== 'delivered' && (
+                            <button 
+                              onClick={(e) => { e.stopPropagation(); handleStatusChange(order.id, 'cancelled'); }}
+                              className="p-1.5 text-slate-400 hover:text-red-600 hover:bg-red-50 rounded-lg"
+                              title="Cancelar pedido"
+                            >
+                              <XCircle className="w-4 h-4" />
+                            </button>
+                          )}
                           <button 
-                            onClick={(e) => { e.stopPropagation(); handleStatusChange(order.id, 'completed'); }}
-                            className="p-2 text-slate-300 hover:text-green-600 hover:bg-green-50 rounded-lg transition-all opacity-0 group-hover:opacity-100"
-                            title="Marcar como completado"
+                            onClick={(e) => { e.stopPropagation(); handleDeleteOrder(order.id); }}
+                            className="p-1.5 text-slate-400 hover:text-red-700 hover:bg-red-100 rounded-lg"
+                            title="Eliminar permanentemente"
                           >
-                            <CheckCircle className="w-4 h-4" />
+                            <Trash2 className="w-4 h-4" />
                           </button>
-                        )}
-                        {order.status === 'completed' && (
-                          <button 
-                            onClick={(e) => { e.stopPropagation(); handleStatusChange(order.id, 'pending'); }}
-                            className="p-2 text-slate-300 hover:text-amber-600 hover:bg-amber-50 rounded-lg transition-all opacity-0 group-hover:opacity-100"
-                            title="Mover a pendientes"
-                          >
-                            <Clock className="w-4 h-4" />
-                          </button>
-                        )}
+                        </div>
                       </div>
                     </div>
                   </div>
@@ -197,11 +426,44 @@ const AdminDashboard = () => {
                 </button>
               </div>
               
-              <PdfConverter 
-                initialPreviews={selectedOrder.image_path.split(',').map(path => `http://127.0.0.1:8000/uploads/${path.trim()}`)} 
-                initialFile={null} 
-                initialOrder={selectedOrder}
-              />
+              {/* 
+                BIFURCACIÓN SEGÚN TIPO DE PEDIDO:
+                - PDF: Mostramos botón de descarga directa (el PDF ya fue procesado al subirse)
+                - Imagen: Usamos PdfConverter para aplicar pipeline sRGB con configuración del pedido
+              */}
+              {selectedOrder.print_mode === 'pdf' ? (
+                // --- Flujo para pedidos de tipo PDF ---
+                <div className="premium-card p-10 flex flex-col items-center justify-center gap-6 text-center">
+                  <div className="w-20 h-20 bg-blue-50 rounded-[2rem] flex items-center justify-center">
+                    <FileText className="w-10 h-10 text-blue-600" />
+                  </div>
+                  <div className="space-y-2">
+                    <h3 className="text-xl font-black text-slate-900">PDF Listo para Imprimir</h3>
+                    <p className="text-sm text-slate-400 font-medium max-w-xs">
+                      Este pedido fue enviado como PDF. El archivo ya está procesado con las páginas seleccionadas 
+                      por el cliente ({selectedOrder.pdf_page_range === 'all' ? 'todas las páginas' : selectedOrder.pdf_page_range}).
+                    </p>
+                    <p className="text-xs font-bold text-blue-500 uppercase tracking-widest">
+                      {selectedOrder.copies} {selectedOrder.copies === 1 ? 'copia' : 'copias'} • {selectedOrder.paper_type.replace('_', ' ')}
+                    </p>
+                  </div>
+                  <button
+                    onClick={() => downloadOrderFile(selectedOrder)}
+                    disabled={downloading}
+                    className="flex items-center gap-3 px-8 py-4 bg-gradient-to-r from-blue-600 to-indigo-600 text-white font-black rounded-[2rem] shadow-xl shadow-blue-200 hover:scale-[1.02] active:scale-[0.98] transition-all disabled:opacity-60 disabled:scale-100"
+                  >
+                    {downloading ? <Loader2 className="w-5 h-5 animate-spin" /> : <Download className="w-5 h-5" />}
+                    {downloading ? 'Descargando...' : 'Descargar PDF del Pedido'}
+                  </button>
+                </div>
+              ) : (
+                // --- Flujo para pedidos de imágenes: pipeline sRGB via PdfConverter ---
+                <PdfConverter 
+                  initialPreviews={selectedOrder.image_path.split(',').map(path => `http://127.0.0.1:8000/uploads/${path.trim()}`)} 
+                  initialFile={null} 
+                  initialOrder={selectedOrder}
+                />
+              )}
             </div>
           ) : (
             <div className="premium-card p-32 text-center space-y-6 border-dashed border-2 bg-slate-50/50">
@@ -217,6 +479,8 @@ const AdminDashboard = () => {
             </div>
           )}
         </div>
+        </>
+        )}
       </div>
     </div>
   );

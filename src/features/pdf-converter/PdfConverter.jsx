@@ -21,6 +21,7 @@ export default function PdfConverter({ initialFile = null, initialPreview = null
     margin_mm: 3.0, // Reducido a 3mm por defecto
     orientation: initialOrder?.orientation || 'auto',
     print_mode: initialOrder?.print_mode || 'individual',
+    paper_type: initialOrder?.paper_type || 'normal', // Capturar tipo de papel
     mosaic_columns: initialOrder?.mosaic_columns || 4,
     mosaic_size_cm: initialOrder?.mosaic_size_cm || 5.0
   });
@@ -35,6 +36,7 @@ export default function PdfConverter({ initialFile = null, initialPreview = null
         ...prev,
         orientation: initialOrder.orientation,
         print_mode: initialOrder.print_mode,
+        paper_type: initialOrder.paper_type,
         mosaic_columns: initialOrder.mosaic_columns,
         mosaic_size_cm: initialOrder.mosaic_size_cm
       }));
@@ -81,8 +83,8 @@ export default function PdfConverter({ initialFile = null, initialPreview = null
   const handleFileChange = (e) => {
     const selectedFiles = Array.from(e.target.files);
     if (selectedFiles.length > 0) {
-      // Si estamos en modo mosaico, añadimos. Si no, reemplazamos (comportamiento tradicional)
-      if (config.print_mode === 'mosaico') {
+      // Permitimos añadir fotos en modo mosaico e individual (multi-imagen)
+      if (config.print_mode === 'mosaico' || config.print_mode === 'individual') {
         setFiles(prev => [...prev, ...selectedFiles]);
         const newPreviews = selectedFiles.map(f => URL.createObjectURL(f));
         setPreviews(prev => [...prev, ...newPreviews]);
@@ -129,14 +131,20 @@ export default function PdfConverter({ initialFile = null, initialPreview = null
     formData.append('margin_mm', config.margin_mm);
     formData.append('orientation', config.orientation);
     
-    // Enviar configuración de modo de impresión
+    // Enviar configuración de modo de impresión y tipo de papel
     formData.append('print_mode', config.print_mode);
+    formData.append('paper_type', config.paper_type);
     if (config.print_mode === 'mosaico') {
       formData.append('mosaic_columns', config.mosaic_columns);
       formData.append('mosaic_size_cm', config.mosaic_size_cm);
     }
 
     try {
+      console.log("Enviando generación de PDF:", {
+        numFiles: files.length,
+        print_mode: config.print_mode,
+        paper_type: config.paper_type
+      });
       const response = await apiClient.post('/pdf/generate-pdf', formData, {
         responseType: 'blob'
       });
