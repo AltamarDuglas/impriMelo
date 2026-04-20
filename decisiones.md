@@ -4,9 +4,11 @@ En este documento se registran las decisiones técnicas y de diseño tomadas par
 
 ## Reenfocque del Proyecto: Del Generador PDF a Servicio de Impresión a Domicilio
 
-### 1. Cambio de Identidad y Propósito
-- **Decisión**: Se cambia el nombre comercial de "CMYK Pro" a algo más accesible para el usuario final (ej. "PrintEase").
-- **Razón**: El usuario final no suele entender términos técnicos como CMYK; busca facilidad para imprimir sus fotos.
+### 2026-04-19: Cambio de Branding y Limpieza de UI
+- **Decisión:** Cambiar el nombre comercial de "CMYK Pro" a "impriMELO - Fotografias y más".
+  - **Razón:** Reforzar la identidad de marca lúdica y cercana del cliente ("Melo").
+- **Decisión:** Eliminar etiquetas de medidas (DimensionLabel) y sacar la previsualización de contenedores rígidos.
+  - **Razón:** El usuario reportó que las medidas saturaban la vista y que los contenedores hacían que la previsualización se viera demasiado pequeña. Al liberar el visor, se maximiza el impacto visual de las imágenes.
 
 ### 2. Arquitectura de Rutas (React Router)
 - **Decisión**: Implementar `react-router-dom` para separar la experiencia del cliente de la del administrador.
