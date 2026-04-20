@@ -27,7 +27,7 @@ const Layout = ({ children }) => {
               className="relative"
             >
               <h1 className="text-2xl md:text-3xl font-black tracking-tighter text-slate-900">
-                imprim<span className="text-gradient-melo">ELO</span>
+                impri<span className="text-gradient-melo">MELO</span>
               </h1>
             </motion.div>
           </Link>
