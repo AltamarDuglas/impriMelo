@@ -42,3 +42,26 @@ En este documento se registran las decisiones técnicas y de diseño tomadas par
 
 ---
 *Este documento se actualizará conforme avance el desarrollo.*
+
+## Editor de Lienzo Libre (Diseño Libre)
+
+### 9. Elección de Konva.js + react-konva (2026-04-20)
+- **Decisión**: Usar `konva` + `react-konva@18.2.14` como motor del canvas 2D interactivo.
+- **Razón**: Integración nativa con React y API declarativa.
+
+### 10. Generación de PDF en el Frontend con jsPDF (2026-04-20)
+- **Decisión**: El PDF se genera en el navegador para asegurar paridad visual total (What You See Is What You Get).
+
+### 11. Soporte de Texto en el Canvas (2026-04-20)
+- **Decisión**: Incluir herramienta de texto editable desde la v1.
+
+### 12. Tamaños de Papel Estándar (2026-04-20)
+- **Decisión**: Ofrecer Carta, A4, A5 para evitar errores de impresión física.
+
+### 13. Arquitectura SOLID del Editor (2026-04-20)
+- **Decisión**: Separar en archivos con responsabilidades únicas (SRP).
+
+### 14. Integración del Editor con Checkout (2026-04-20)
+- **Decisión**: Abandonar `localStorage` para el PDF y enviarlo directamente como `Blob` al Checkout.
+- **Razón**: Corregir `QuotaExceededError` y unificar el flujo de negocio.
+
