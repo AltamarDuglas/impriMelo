@@ -1,6 +1,6 @@
 import React, { useState } from 'react';
 import { useNavigate, Link } from 'react-router-dom';
-import { User, Mail, Lock, UserPlus, AlertCircle, CheckCircle2 } from 'lucide-react';
+import { User, Mail, Lock, UserPlus, AlertCircle, CheckCircle2, Phone } from 'lucide-react';
 import { motion } from 'framer-motion';
 
 /**
@@ -11,7 +11,8 @@ const RegisterView = () => {
   const [formData, setFormData] = useState({
     email: '',
     password: '',
-    full_name: ''
+    full_name: '',
+    phone: ''
   });
   const [error, setError] = useState(null);
   const [success, setSuccess] = useState(false);
@@ -95,6 +96,22 @@ const RegisterView = () => {
                 onChange={handleChange}
                 className="w-full pl-12 pr-4 py-4 rounded-2xl border-2 border-slate-100 focus:border-purple-500 focus:bg-white bg-slate-50 transition-all outline-none font-medium"
                 placeholder="Juan Melo"
+              />
+            </div>
+          </div>
+
+          <div className="space-y-2">
+            <label className="text-xs font-black text-slate-400 uppercase tracking-widest ml-1">Teléfono / WhatsApp</label>
+            <div className="relative">
+              <Phone className="absolute left-4 top-1/2 -translate-y-1/2 w-5 h-5 text-slate-400" />
+              <input 
+                name="phone"
+                type="tel" 
+                required
+                value={formData.phone}
+                onChange={handleChange}
+                className="w-full pl-12 pr-4 py-4 rounded-2xl border-2 border-slate-100 focus:border-purple-500 focus:bg-white bg-slate-50 transition-all outline-none font-medium"
+                placeholder="+57 300 000 0000"
               />
             </div>
           </div>

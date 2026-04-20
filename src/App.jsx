@@ -3,6 +3,7 @@ import { BrowserRouter, Routes, Route } from 'react-router-dom';
 import Layout from './components/shared/Layout';
 import HomeView from './features/customer/HomeView';
 import AdminDashboard from './features/admin/AdminDashboard';
+import HistoryView from './features/customer/HistoryView';
 
 import { AuthProvider } from './context/AuthContext';
 import LoginView from './features/auth/LoginView';
@@ -25,6 +26,7 @@ function App() {
 
             {/* Ruta para clientes: Subida simplificada y Hero */}
             <Route path="/" element={<HomeView />} />
+            <Route path="/history" element={<HistoryView />} />
             
             {/* Ruta para administrador: Gestión de pedidos y conversión PDF */}
             <Route path="/admin" element={<AdminDashboard />} />
