@@ -7,7 +7,7 @@ import { ScrollText, Sparkles, StickyNote, ImageIcon, UserSquare2, LayoutGrid } 
 
 export const PAPERS = [
   { id: 'normal', label: 'Papel Normal (Carta)', desc: 'Ideal para documentos e ilustraciones mate.', Icon: ScrollText, image: '/imgs/docs.png' },
-  { id: 'fotografico', label: 'Papel Fotográfico (A4)', desc: 'Brillo profesional para tus mejores recuerdos.', Icon: Sparkles, image: '/imgs/fotografias-glossy.jpg' },
+  { id: 'fotografico', label: 'Papel Fotográfico (A5)', desc: 'Brillo profesional para tus mejores recuerdos.', Icon: Sparkles, image: '/imgs/fotografias-glossy.jpg' },
   { id: 'stickers', label: 'Stickers Adhesivos (A4)', desc: '¡Ideales para pegar donde quieras! Resistentes.', Icon: StickyNote, image: '/imgs/stickers.png' },
 ];
 

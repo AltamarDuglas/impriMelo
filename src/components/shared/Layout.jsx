@@ -21,7 +21,7 @@ const Layout = ({ children }) => {
       <nav className="sticky top-4 z-50 mx-4 md:mx-auto max-w-7xl w-[calc(100%-2rem)] md:w-full">
         <div className="glass-card-thick px-6 md:px-10 py-3 flex justify-between items-center border-white/50 shadow-xl">
           <Link to="/" className="flex items-center gap-3 group">
-            <motion.div 
+            <motion.div
               initial={{ scale: 0.8, opacity: 0 }}
               animate={{ scale: 1, opacity: 1 }}
               className="relative"
@@ -39,7 +39,7 @@ const Layout = ({ children }) => {
                   <p className="text-[9px] font-black uppercase text-slate-400 tracking-widest">Hola!</p>
                   <p className="text-xs font-bold text-slate-900">{user?.email?.split('@')[0]}</p>
                 </div>
-                <button 
+                <button
                   onClick={logout}
                   className="w-10 h-10 rounded-2xl bg-white/50 text-slate-400 hover:text-red-500 transition-all border border-white flex items-center justify-center"
                 >
@@ -47,7 +47,7 @@ const Layout = ({ children }) => {
                 </button>
               </div>
             ) : (
-              <Link 
+              <Link
                 to="/login"
                 className="btn-melo py-2.5 px-6 text-sm"
               >
