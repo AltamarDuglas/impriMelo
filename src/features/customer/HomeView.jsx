@@ -68,20 +68,20 @@ const HomeView = () => {
   // Actualizar el total de páginas con lógica corregida (SOLID: Lógica de negocio centralizada)
   useEffect(() => {
     let basePages = 0;
-    
+
     if (config.printMode === 'pdf' && previews.length > 0 && previews[0].pages) {
       const maxP = previews[0].pages;
       basePages = config.pdfRange === 'all' ? maxP : getCustomPageCount(config.pdfCustomRange, maxP);
-    } 
+    }
     else if (config.printMode === 'tarjeta' || config.printMode === 'mosaico') {
       // En estos modos, todas las imágenes se distribuyen en UNA sola hoja física (o paquete)
       basePages = previews.length > 0 ? 1 : 0;
-    } 
+    }
     else {
       // Modo Individual: cada imagen cuenta como una página (o más si el archivo es multi-página)
       basePages = previews.reduce((acc, curr) => acc + (curr.pages || 1), 0);
     }
-    
+
     setTotalPages(basePages * config.copies);
   }, [previews, config.printMode, config.pdfRange, config.pdfCustomRange, config.copies]);
 
@@ -272,7 +272,7 @@ const HomeView = () => {
       formData.append('customer_name', checkoutData.name);
       formData.append('customer_address', checkoutData.address);
       formData.append('customer_phone', checkoutData.phone);
-      
+
       // Comprobante
       if (checkoutData.screenshot) {
         formData.append('payment_screenshot', checkoutData.screenshot);
@@ -306,17 +306,17 @@ const HomeView = () => {
   const currentPrice = totalPages * PRICES[config.paperType];
 
   return (
-    <div className="h-screen w-full flex flex-col px-2 py-4 md:p-6 overflow-hidden relative">
+    <div className="h-screen w-full flex flex-col px-0 py-4 md:p-6 overflow-hidden relative">
       <AnimatePresence mode="wait">
         {step === 1 && (
-          <UploadStep 
-            onFileChange={handleFileChange} 
-            isUploading={isUploading} 
+          <UploadStep
+            onFileChange={handleFileChange}
+            isUploading={isUploading}
           />
         )}
 
         {step === 2 && (
-          <ConfigStep 
+          <ConfigStep
             config={config}
             setConfig={setConfig}
             previews={previews}
@@ -353,11 +353,11 @@ const HomeView = () => {
         )}
 
         {step === 4 && (
-          <SuccessStep 
-            files={files} 
-            config={config} 
-            currentPrice={currentPrice} 
-            onReset={() => setStep(1)} 
+          <SuccessStep
+            files={files}
+            config={config}
+            currentPrice={currentPrice}
+            onReset={() => setStep(1)}
           />
         )}
       </AnimatePresence>
