@@ -24,14 +24,14 @@ const PromoBanner = () => {
   return (
     <AnimatePresence>
       {isVisible && (
-        <div className="fixed inset-0 z-[10000] flex items-center justify-center p-4 overflow-hidden">
+        <div className="fixed inset-0 z-[10000] flex items-start justify-center p-4 pt-[15vh] overflow-hidden pointer-events-none">
           {/* Backdrop */}
           <motion.div
             initial={{ opacity: 0 }}
             animate={{ opacity: 1 }}
             exit={{ opacity: 0 }}
             onClick={handleClose}
-            className="absolute inset-0 bg-slate-900/60 backdrop-blur-sm"
+            className="absolute inset-0 bg-slate-900/60 backdrop-blur-sm pointer-events-auto"
           />
 
           {/* Ventana Compacta */}
@@ -39,7 +39,7 @@ const PromoBanner = () => {
             initial={{ opacity: 0, scale: 0.8 }}
             animate={{ opacity: 1, scale: 1 }}
             exit={{ opacity: 0, scale: 0.8 }}
-            className="relative w-full max-w-[280px] bg-white rounded-[2.5rem] shadow-[0_25px_70px_rgba(0,0,0,0.5)] border border-white overflow-hidden"
+            className="relative w-full max-w-[280px] bg-white rounded-[2.5rem] shadow-[0_25px_70px_rgba(0,0,0,0.5)] border border-white overflow-hidden pointer-events-auto"
           >
             <div className="h-28 bg-gradient-melo flex items-center justify-center">
                <motion.div 

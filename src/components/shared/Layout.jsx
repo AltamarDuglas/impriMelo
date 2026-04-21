@@ -4,6 +4,7 @@ import { Printer, LayoutDashboard, Home as HomeIcon, LogIn, LogOut } from 'lucid
 import { useAuth } from '../../context/AuthContext';
 import { motion } from 'framer-motion';
 import BottomNav from './BottomNav';
+import PromoBanner from './PromoBanner';
 
 /**
  * Componente Layout compartido.
@@ -64,6 +65,7 @@ const Layout = ({ children }) => {
       </main>
 
       <BottomNav />
+      {location.pathname === '/' && <PromoBanner />}
 
       {/* Footer Minimalista */}
       <footer className="py-12 pb-32 md:pb-12 text-center">
