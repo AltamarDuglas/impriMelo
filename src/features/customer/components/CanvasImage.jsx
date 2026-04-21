@@ -1,4 +1,4 @@
-import React, { useRef, useEffect } from 'react';
+import React, { useRef, useEffect, memo } from 'react';
 import { Image, Transformer } from 'react-konva';
 import useImage from 'use-image';
 
@@ -8,7 +8,7 @@ import useImage from 'use-image';
  * SOLID: Responsabilidad Única - Solo se encarga de renderizar la imagen,
  * manejar su estado de selección y aplicar transformaciones.
  */
-const CanvasImage = ({ imageData, isSelected, onSelect, onChange, onDragMove }) => {
+const CanvasImage = memo(({ imageData, isSelected, onSelect, onChange, onDragMove }) => {
   const [img] = useImage(imageData.src);
   const shapeRef = useRef();
   const trRef = useRef();
@@ -30,14 +30,21 @@ const CanvasImage = ({ imageData, isSelected, onSelect, onChange, onDragMove }) 
         onClick={onSelect}
         onTap={onSelect}
         onDragMove={(e) => {
-          const { x, y } = onDragMove(
-            e.target.x(),
-            e.target.y(),
-            e.target.width() * e.target.scaleX(),
-            e.target.height() * e.target.scaleY()
-          );
-          e.target.x(x);
-          e.target.y(y);
+          // Fix del Bug de Rotación: Si está rotado, el snap de useCanvasSnap es impreciso
+          // porque se basa en cajas alineadas a los ejes (AABB).
+          // Decisión: Solo aplicar snap si la rotación es 0 (o múltiplo de 360).
+          const isRotated = Math.abs(e.target.rotation() % 360) > 0.1;
+          
+          if (!isRotated) {
+            const { x, y } = onDragMove(
+              e.target.x(),
+              e.target.y(),
+              e.target.width() * e.target.scaleX(),
+              e.target.height() * e.target.scaleY()
+            );
+            e.target.x(x);
+            e.target.y(y);
+          }
         }}
         onDragEnd={(e) => {
           onChange({
@@ -75,6 +82,8 @@ const CanvasImage = ({ imageData, isSelected, onSelect, onChange, onDragMove }) 
       )}
     </React.Fragment>
   );
-};
+});
+
+CanvasImage.displayName = 'CanvasImage';
 
 export default CanvasImage;

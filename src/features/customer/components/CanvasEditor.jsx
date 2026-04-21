@@ -4,12 +4,16 @@ import { motion, AnimatePresence } from 'framer-motion';
 import { Printer, ChevronLeft, Info, MousePointer2 } from 'lucide-react';
 
 import CanvasImage from './CanvasImage';
+import CanvasText from './CanvasText';
 import CanvasToolbar from './CanvasToolbar';
 import PrintDrawer from './PrintDrawer';
 import { PAPER_SIZES } from '../HomeConstants';
 import { generatePDFBlob } from '../utils/pdfExporter';
 import { useCanvasSnap } from '../hooks/useCanvasSnap';
 import { useCanvasKeyboard } from '../hooks/useCanvasKeyboard';
+
+// Constante para persistencia local
+const STORAGE_KEY = 'melo_canvas_design';
 
 /**
  * CanvasEditor v6 - Rediseño Total "Mobile-First Premium".
@@ -18,15 +22,22 @@ import { useCanvasKeyboard } from '../hooks/useCanvasKeyboard';
  * Cambios: Layout absoluto, soporte para Safe Areas, estética de Isla Flotante.
  */
 const CanvasEditor = ({ initialImages = [], onBack, onFinishDesign }) => {
-  const [paperConfig, setPaperConfig] = useState({ sizeId: 'carta', orientation: 'portrait' });
-  const [elements, setElements] = useState([]);
-  const [textElements, setTextElements] = useState([]);
+  const [paperConfig, setPaperConfig] = useState(() => {
+    const saved = localStorage.getItem(`${STORAGE_KEY}_config`);
+    return saved ? JSON.parse(saved) : { sizeId: 'carta', orientation: 'portrait' };
+  });
+  
+  const [elements, setElements] = useState(() => {
+    const saved = localStorage.getItem(STORAGE_KEY);
+    return saved ? JSON.parse(saved) : [];
+  });
+
   const [selectedId, setSelectedId] = useState(null);
-  const [zoom, setZoom] = useState(0.6); // Zoom inicial un poco más alejado para móviles
+  const [zoom, setZoom] = useState(0.6);
   const [stagePos, setStagePos] = useState({ x: 0, y: 0 });
   const [containerSize, setContainerSize] = useState({ width: window.innerWidth, height: window.innerHeight });
   const [isConfigOpen, setIsConfigOpen] = useState(false);
-  const [showHelp, setShowHelp] = useState(true);
+  const [showHelp, setShowHelp] = useState(() => !localStorage.getItem('melo_help_seen'));
   const [isSending, setIsSending] = useState(false);
 
   const stageRef = useRef(null);
@@ -73,26 +84,38 @@ const CanvasEditor = ({ initialImages = [], onBack, onFinishDesign }) => {
     };
   }, []);
 
-  const selectedPaper = PAPER_SIZES.find(p => p.id === paperConfig.sizeId);
-  const paperWidthMm = selectedPaper ? (paperConfig.orientation === 'landscape' ? selectedPaper.heightMm : selectedPaper.widthMm) : 215.9;
-  const paperHeightMm = selectedPaper ? (paperConfig.orientation === 'landscape' ? selectedPaper.widthMm : selectedPaper.heightMm) : 279.4;
-  const paperAspect = paperWidthMm / paperHeightMm;
+  // --- PERSISTENCIA ---
+  useEffect(() => {
+    localStorage.setItem(STORAGE_KEY, JSON.stringify(elements));
+    localStorage.setItem(`${STORAGE_KEY}_config`, JSON.stringify(paperConfig));
+  }, [elements, paperConfig]);
 
-  // Cálculo del tamaño visual del lienzo (en px)
-  const availableW = containerSize.width;
-  const availableH = containerSize.height;
-  let canvasWidth, canvasHeight;
+  const selectedPaper = useMemo(() => PAPER_SIZES.find(p => p.id === paperConfig.sizeId), [paperConfig.sizeId]);
   
-  if (availableW / availableH > paperAspect) {
-    canvasHeight = availableH * 0.7; // Deja espacio para UI
-    canvasWidth = canvasHeight * paperAspect;
-  } else {
-    canvasWidth = availableW * 0.85; // Margen lateral
-    canvasHeight = canvasWidth / paperAspect;
-  }
+  const { paperWidthMm, paperHeightMm, paperAspect } = useMemo(() => {
+    const w = selectedPaper ? (paperConfig.orientation === 'landscape' ? selectedPaper.heightMm : selectedPaper.widthMm) : 215.9;
+    const h = selectedPaper ? (paperConfig.orientation === 'landscape' ? selectedPaper.widthMm : selectedPaper.heightMm) : 279.4;
+    return { paperWidthMm: w, paperHeightMm: h, paperAspect: w / h };
+  }, [selectedPaper, paperConfig.orientation]);
+
+  // Cálculo del tamaño visual del lienzo (en px) - Optimizado con useMemo
+  const { canvasWidth, canvasHeight } = useMemo(() => {
+    const availableW = containerSize.width;
+    const availableH = containerSize.height;
+    let cw, ch;
+    
+    if (availableW / availableH > paperAspect) {
+      ch = availableH * 0.7;
+      cw = ch * paperAspect;
+    } else {
+      cw = availableW * 0.85;
+      ch = cw / paperAspect;
+    }
+    return { canvasWidth: cw, canvasHeight: ch };
+  }, [containerSize, paperAspect]);
 
   const { guideLines, handleDragMove } = useCanvasSnap(canvasWidth, canvasHeight, elements, selectedId);
-  useCanvasKeyboard(elements, selectedId, setElements, setTextElements, setSelectedId);
+  useCanvasKeyboard(elements, selectedId, setElements, () => {}, setSelectedId); // Unificado
 
   // ResizeObserver para el contenedor
   useEffect(() => {
@@ -100,7 +123,10 @@ const CanvasEditor = ({ initialImages = [], onBack, onFinishDesign }) => {
     if (!el) return;
     const observer = new ResizeObserver(entries => {
       for (const entry of entries) {
-        setStageSize({ width: entry.contentRect.width, height: entry.contentRect.height });
+        // Usar requestAnimationFrame para asegurar suavidad a 60fps
+        requestAnimationFrame(() => {
+          setStageSize({ width: entry.contentRect.width, height: entry.contentRect.height });
+        });
       }
     });
     observer.observe(el);
@@ -115,18 +141,44 @@ const CanvasEditor = ({ initialImages = [], onBack, onFinishDesign }) => {
     });
   }, [containerSize.width, containerSize.height, canvasWidth, canvasHeight, zoom]);
 
+  // Helper para procesar imágenes manteniendo aspect ratio
+  const processImage = (src, index = 0) => {
+    return new Promise((resolve) => {
+      const img = new Image();
+      img.onload = () => {
+        const maxDim = 180; // Tamaño base para que no sea gigante
+        let w = img.width;
+        let h = img.height;
+        const ratio = w / h;
+
+        if (w > h) {
+          w = maxDim;
+          h = maxDim / ratio;
+        } else {
+          h = maxDim;
+          w = maxDim * ratio;
+        }
+
+        resolve({
+          id: `el-${Date.now()}-${index}`,
+          type: 'image',
+          src,
+          x: (canvasWidth - w) / 2 + (index * 15),
+          y: (canvasHeight - h) / 2 + (index * 15),
+          width: w,
+          height: h,
+          rotation: 0,
+        });
+      };
+      img.src = src;
+    });
+  };
+
   // Carga de imágenes iniciales
   useEffect(() => {
     if (initialImages.length > 0 && elements.length === 0) {
-      setElements(initialImages.map((src, i) => ({
-        id: `img-${Date.now()}-${i}`,
-        src, 
-        x: (canvasWidth - 150) / 2 + (i * 20), 
-        y: (canvasHeight - 150) / 2 + (i * 20), 
-        width: 150, 
-        height: 150, 
-        rotation: 0,
-      })));
+      Promise.all(initialImages.map((src, i) => processImage(src, i)))
+        .then(newElements => setElements(newElements));
     }
   }, [initialImages, canvasWidth, canvasHeight]);
 
@@ -259,25 +311,35 @@ const CanvasEditor = ({ initialImages = [], onBack, onFinishDesign }) => {
           onTap={handleStageClick}
         >
           <Layer>
-            {/* Sombras de la hoja para realismo */}
+            {/* Sombras de la hoja para realismo - listening={false} para optimizar */}
             <Rect 
               x={-5} y={-5} width={canvasWidth + 10} height={canvasHeight + 10} 
               fill="#000" opacity={0.05} cornerRadius={4} shadowBlur={20} shadowOpacity={0.2}
+              listening={false}
             />
             {/* Hoja Blanca */}
-            <Rect id="bg" x={0} y={0} width={canvasWidth} height={canvasHeight} fill="white" />
+            <Rect id="bg" x={0} y={0} width={canvasWidth} height={canvasHeight} fill="white" listening={false} />
             
             {elements.map(el => (
-              <CanvasImage 
-                key={el.id} imageData={el} isSelected={el.id === selectedId} 
-                onSelect={() => setSelectedId(el.id)} 
-                onDragMove={handleDragMove} 
-                onChange={(updated) => setElements(prev => prev.map(e => e.id === updated.id ? updated : e))} 
-              />
+              el.type === 'text' ? (
+                <CanvasText
+                  key={el.id} textData={el} isSelected={el.id === selectedId}
+                  onSelect={() => setSelectedId(el.id)}
+                  onDragMove={handleDragMove}
+                  onChange={(updated) => setElements(prev => prev.map(e => e.id === updated.id ? updated : e))}
+                />
+              ) : (
+                <CanvasImage 
+                  key={el.id} imageData={el} isSelected={el.id === selectedId} 
+                  onSelect={() => setSelectedId(el.id)} 
+                  onDragMove={handleDragMove} 
+                  onChange={(updated) => setElements(prev => prev.map(e => e.id === updated.id ? updated : e))} 
+                />
+              )
             ))}
             
             {guideLines.map((l, i) => (
-              <Line key={i} points={[l.x1, l.y1, l.x2, l.y2]} stroke="#ec4899" strokeWidth={1.5 / zoom} dash={[4 / zoom, 4 / zoom]} />
+              <Line key={i} points={[l.x1, l.y1, l.x2, l.y2]} stroke="#ec4899" strokeWidth={1.5 / zoom} dash={[4 / zoom, 4 / zoom]} listening={false} />
             ))}
           </Layer>
         </Stage>
@@ -287,17 +349,24 @@ const CanvasEditor = ({ initialImages = [], onBack, onFinishDesign }) => {
       <div className="absolute bottom-[calc(env(safe-area-inset-bottom,0px)+1.5rem)] inset-x-0 z-[100] flex justify-center px-4 pointer-events-none">
         <div className="pointer-events-auto">
           <CanvasToolbar
-            onAddImage={(files) => { 
-              setElements(prev => [...prev, ...files.map((f, i) => ({ 
-                id: `img-${Date.now()}-${i}`, 
-                src: URL.createObjectURL(f), 
-                x: 50 + (i*10), y: 50 + (i*10), 
-                width: 120, height: 120, rotation: 0 
-              }))]); 
+            onAddImage={async (files) => { 
+              const newElements = await Promise.all(files.map((f, i) => processImage(URL.createObjectURL(f), i)));
+              setElements(prev => [...prev, ...newElements]); 
             }}
             onAddText={() => { 
-              const t = { id: `txt-${Date.now()}`, text: 'Texto', x: 50, y: 50, fontSize: 30, fill: '#000' }; 
-              setTextElements(prev => [...prev, t]); 
+              const t = { 
+                id: `el-${Date.now()}`, 
+                type: 'text',
+                text: 'Doble clic para editar', 
+                x: 50, y: 50, 
+                fontSize: 24, 
+                fontFamily: 'Inter',
+                fontStyle: 'bold',
+                fill: '#1e293b',
+                width: 200,
+                rotation: 0
+              }; 
+              setElements(prev => [...prev, t]); 
               setSelectedId(t.id); 
             }}
             onDeleteSelected={() => { setElements(prev => prev.filter(e => e.id !== selectedId)); setSelectedId(null); }}
@@ -339,7 +408,10 @@ const CanvasEditor = ({ initialImages = [], onBack, onFinishDesign }) => {
                 </p>
               </div>
               <button 
-                onClick={() => setShowHelp(false)} 
+                onClick={() => {
+                  setShowHelp(false);
+                  localStorage.setItem('melo_help_seen', 'true');
+                }} 
                 className="btn-melo w-full py-4 rounded-2xl text-sm"
               >
                 ¡A DISEÑAR!

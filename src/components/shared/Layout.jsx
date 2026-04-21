@@ -68,7 +68,7 @@ const Layout = ({ children }) => {
       {/* Footer Minimalista */}
       <footer className="py-12 pb-32 md:pb-12 text-center">
         <p className="text-xs font-bold text-slate-400 tracking-widest uppercase">
-          &copy; {new Date().getFullYear()} imprim<span className="text-gradient-melo">ELO</span> • Hecho para ti
+          &copy; {new Date().getFullYear()} impri<span className="text-gradient-melo">MELO</span> • Hecho para ti
         </p>
       </footer>
     </div>

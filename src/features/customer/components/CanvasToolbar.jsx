@@ -23,7 +23,14 @@ const CanvasToolbar = ({ onAddImage, onAddText, onDeleteSelected, zoom, onZoomCh
       animate={{ y: 0, opacity: 1 }}
       className="flex items-center gap-2 p-2 bg-white/80 backdrop-blur-2xl rounded-[2rem] shadow-[0_20px_50px_rgba(0,0,0,0.15)] border border-white/50 ring-1 ring-black/5"
     >
-      <input ref={fileInputRef} type="file" multiple accept="image/*" style={{ display: 'none' }} onChange={handleFileSelect} />
+      <input 
+        ref={fileInputRef} 
+        type="file" 
+        multiple 
+        accept="image/*" 
+        style={{ display: 'none' }} 
+        onChange={handleFileSelect} 
+      />
       
       {/* Grupo de Acciones Principales */}
       <div className="flex items-center gap-1 bg-slate-100/50 p-1 rounded-2xl">
