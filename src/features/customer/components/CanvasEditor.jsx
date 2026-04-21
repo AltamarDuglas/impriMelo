@@ -120,6 +120,55 @@ const CanvasEditor = ({ initialImages = [], onBack, onFinishDesign }) => {
     setStagePos({ x: pointer.x - mp.x * ns, y: pointer.y - mp.y * ns });
   };
 
+  // --- MANEJO DE ZOOM POR PELLIZCO (Mobile Pinch Zoom) ---
+  const lastDistRef = useRef(0);
+  const lastCenterRef = useRef(null);
+
+  const getDistance = (p1, p2) => Math.sqrt(Math.pow(p2.x - p1.x, 2) + Math.pow(p2.y - p1.y, 2));
+  const getCenter = (p1, p2) => ({ x: (p1.x + p2.x) / 2, y: (p1.y + p2.y) / 2 });
+
+  const handleTouchStart = (e) => {
+    if (e.evt.touches.length === 2) {
+      const p1 = { x: e.evt.touches[0].clientX, y: e.evt.touches[0].clientY };
+      const p2 = { x: e.evt.touches[1].clientX, y: e.evt.touches[1].clientY };
+      lastDistRef.current = getDistance(p1, p2);
+      lastCenterRef.current = getCenter(p1, p2);
+    }
+  };
+
+  const handleTouchMove = (e) => {
+    if (e.evt.touches.length === 2) {
+      e.evt.preventDefault();
+      const stage = stageRef.current;
+      if (!stage) return;
+
+      const p1 = { x: e.evt.touches[0].clientX, y: e.evt.touches[0].clientY };
+      const p2 = { x: e.evt.touches[1].clientX, y: e.evt.touches[1].clientY };
+      const dist = getDistance(p1, p2);
+      const center = getCenter(p1, p2);
+
+      const oldScale = stage.scaleX();
+      const newScale = Math.min(3, Math.max(0.3, oldScale * (dist / lastDistRef.current)));
+
+      // Calcular nueva posición para mantener el centro del zoom
+      const stagePointer = stage.getPointerPosition() || center;
+      const mousePointTo = {
+        x: (stagePointer.x - stage.x()) / oldScale,
+        y: (stagePointer.y - stage.y()) / oldScale,
+      };
+
+      const newPos = {
+        x: stagePointer.x - mousePointTo.x * newScale,
+        y: stagePointer.y - mousePointTo.y * newScale,
+      };
+
+      setZoom(newScale);
+      setStagePos(newPos);
+      lastDistRef.current = dist;
+      lastCenterRef.current = center;
+    }
+  };
+
   const handleSendToPrint = async () => {
     setIsSending(true);
     setSelectedId(null);
@@ -156,7 +205,7 @@ const CanvasEditor = ({ initialImages = [], onBack, onFinishDesign }) => {
       </div>
 
       {/* Contenedor del Canvas (Llenado total) */}
-      <div ref={canvasContainerRef} className="flex-1 w-full h-full cursor-grab active:cursor-grabbing">
+      <div ref={canvasContainerRef} className="flex-1 w-full h-full cursor-grab active:cursor-grabbing touch-none">
         <Stage
           ref={stageRef} 
           width={stageSize.width} 
@@ -166,6 +215,8 @@ const CanvasEditor = ({ initialImages = [], onBack, onFinishDesign }) => {
           onDragEnd={(e) => { if (e.target === stageRef.current) setStagePos({ x: e.target.x(), y: e.target.y() }); }}
           scaleX={zoom} scaleY={zoom} 
           onWheel={handleWheel} 
+          onTouchStart={handleTouchStart}
+          onTouchMove={handleTouchMove}
           onClick={handleStageClick} 
           onTap={handleStageClick}
         >
