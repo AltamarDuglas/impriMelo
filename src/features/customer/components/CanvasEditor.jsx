@@ -44,16 +44,25 @@ const CanvasEditor = ({ initialImages = [], onBack, onFinishDesign }) => {
 
     // Aplicamos bloqueo "True Fullscreen"
     html.style.overflow = 'hidden';
-    html.style.height = '100dvh';
     body.style.overflow = 'hidden';
-    body.style.height = '100dvh';
     body.style.position = 'fixed';
     body.style.width = '100%';
+
+    const updateHeight = () => {
+      const h = window.innerHeight;
+      html.style.height = `${h}px`;
+      body.style.height = `${h}px`;
+      setContainerSize({ width: window.innerWidth, height: h });
+    };
+
+    window.addEventListener('resize', updateHeight);
+    updateHeight(); // Llamada inicial
     
     const elementsToHide = document.querySelectorAll('nav, footer, .fixed.bottom-6, .fixed.bottom-0.h-40');
     elementsToHide.forEach(el => el.style.display = 'none');
     
     return () => {
+      window.removeEventListener('resize', updateHeight);
       html.style.overflow = originalHtmlStyle.overflow;
       html.style.height = originalHtmlStyle.height;
       body.style.overflow = originalBodyStyle.overflow;
@@ -203,7 +212,10 @@ const CanvasEditor = ({ initialImages = [], onBack, onFinishDesign }) => {
   };
 
   return (
-    <div className="fixed inset-0 z-[99999] bg-[#EFEFEF] flex flex-col overflow-hidden select-none">
+    <div 
+      className="fixed top-0 left-0 right-0 z-[99999] bg-[#EFEFEF] flex flex-col overflow-hidden select-none"
+      style={{ height: `${containerSize.height}px` }}
+    >
       {/* Header Flotante Premium */}
       <div className="absolute top-0 inset-x-0 z-[100] p-4 pointer-events-none">
         <div className="max-w-2xl mx-auto flex justify-between items-center bg-white/70 backdrop-blur-xl border border-white/40 p-2 rounded-3xl shadow-xl pointer-events-auto">
@@ -271,8 +283,8 @@ const CanvasEditor = ({ initialImages = [], onBack, onFinishDesign }) => {
         </Stage>
       </div>
 
-      {/* Toolbar Flotante Inferior (Margen extra para evitar botones de sistema) */}
-      <div className="absolute bottom-[calc(env(safe-area-inset-bottom,0px)+4rem)] inset-x-0 z-[100] flex justify-center px-4 pointer-events-none">
+      {/* Toolbar Flotante Inferior (Ajuste dinámico para Gestos y Botones) */}
+      <div className="absolute bottom-[calc(env(safe-area-inset-bottom,0px)+1.5rem)] inset-x-0 z-[100] flex justify-center px-4 pointer-events-none">
         <div className="pointer-events-auto">
           <CanvasToolbar
             onAddImage={(files) => { 
