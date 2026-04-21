@@ -1,4 +1,4 @@
-import React, { useState, useRef, useEffect } from 'react';
+import React, { useState, useRef, useEffect, useMemo } from 'react';
 import { Stage, Layer, Rect, Line } from 'react-konva';
 import { motion, AnimatePresence } from 'framer-motion';
 import { Printer, ChevronLeft, Info, MousePointer2 } from 'lucide-react';

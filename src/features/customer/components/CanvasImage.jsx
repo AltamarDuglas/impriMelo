@@ -30,21 +30,24 @@ const CanvasImage = memo(({ imageData, isSelected, onSelect, onChange, onDragMov
         onClick={onSelect}
         onTap={onSelect}
         onDragMove={(e) => {
-          // Fix del Bug de Rotación: Si está rotado, el snap de useCanvasSnap es impreciso
-          // porque se basa en cajas alineadas a los ejes (AABB).
-          // Decisión: Solo aplicar snap si la rotación es 0 (o múltiplo de 360).
-          const isRotated = Math.abs(e.target.rotation() % 360) > 0.1;
+          const node = e.target;
+          // Obtenemos la caja delimitadora real (AABB) del elemento rotado
+          const rect = node.getClientRect({ relativeTo: node.getLayer() });
           
-          if (!isRotated) {
-            const { x, y } = onDragMove(
-              e.target.x(),
-              e.target.y(),
-              e.target.width() * e.target.scaleX(),
-              e.target.height() * e.target.scaleY()
-            );
-            e.target.x(x);
-            e.target.y(y);
-          }
+          // Calculamos el snap basado en la caja visual
+          const { x: nx, y: ny } = onDragMove(
+            rect.x,
+            rect.y,
+            rect.width,
+            rect.height
+          );
+          
+          // Calculamos cuánto debemos mover el pivot (x, y) del nodo
+          const dx = nx - rect.x;
+          const dy = ny - rect.y;
+          
+          node.x(node.x() + dx);
+          node.y(node.y() + dy);
         }}
         onDragEnd={(e) => {
           onChange({
@@ -72,6 +75,7 @@ const CanvasImage = memo(({ imageData, isSelected, onSelect, onChange, onDragMov
       {isSelected && (
         <Transformer
           ref={trRef}
+          rotationSnaps={[0, 90, 180, 270]}
           boundBoxFunc={(oldBox, newBox) => {
             if (Math.abs(newBox.width) < 5 || Math.abs(newBox.height) < 5) {
               return oldBox;

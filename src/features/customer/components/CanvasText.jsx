@@ -27,14 +27,21 @@ const CanvasText = ({ textData, isSelected, onSelect, onChange, onDragMove }) =>
         onClick={onSelect}
         onTap={onSelect}
         onDragMove={(e) => {
-          const { x, y } = onDragMove(
-            e.target.x(),
-            e.target.y(),
-            e.target.width() * e.target.scaleX(),
-            e.target.height() * e.target.scaleY()
+          const node = e.target;
+          const rect = node.getClientRect({ relativeTo: node.getLayer() });
+          
+          const { x: nx, y: ny } = onDragMove(
+            rect.x,
+            rect.y,
+            rect.width,
+            rect.height
           );
-          e.target.x(x);
-          e.target.y(y);
+          
+          const dx = nx - rect.x;
+          const dy = ny - rect.y;
+          
+          node.x(node.x() + dx);
+          node.y(node.y() + dy);
         }}
         onDragEnd={(e) => {
           onChange({
@@ -60,6 +67,7 @@ const CanvasText = ({ textData, isSelected, onSelect, onChange, onDragMove }) =>
       {isSelected && (
         <Transformer
           ref={trRef}
+          rotationSnaps={[0, 90, 180, 270]}
           enabledAnchors={['middle-left', 'middle-right']}
           boundBoxFunc={(oldBox, newBox) => {
             newBox.width = Math.max(30, newBox.width);
