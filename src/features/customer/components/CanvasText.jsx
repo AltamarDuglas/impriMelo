@@ -7,7 +7,7 @@ import { Text, Transformer } from 'react-konva';
  * SOLID: Responsabilidad Única - Solo se encarga de renderizar el texto
  * y manejar sus transformaciones.
  */
-const CanvasText = ({ textData, isSelected, onSelect, onChange, onDragMove }) => {
+const CanvasText = ({ textData, isSelected, onSelect, onChange, onDragMove, onDragEnd, onTransformEnd }) => {
   const shapeRef = useRef();
   const trRef = useRef();
 
@@ -44,6 +44,7 @@ const CanvasText = ({ textData, isSelected, onSelect, onChange, onDragMove }) =>
           node.y(node.y() + dy);
         }}
         onDragEnd={(e) => {
+          onDragEnd();
           onChange({
             ...textData,
             x: e.target.x(),
@@ -51,6 +52,7 @@ const CanvasText = ({ textData, isSelected, onSelect, onChange, onDragMove }) =>
           });
         }}
         onTransformEnd={() => {
+          onTransformEnd();
           const node = shapeRef.current;
           const scaleX = node.scaleX();
           node.scaleX(1);

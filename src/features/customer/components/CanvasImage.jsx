@@ -8,7 +8,7 @@ import useImage from 'use-image';
  * SOLID: Responsabilidad Única - Solo se encarga de renderizar la imagen,
  * manejar su estado de selección y aplicar transformaciones.
  */
-const CanvasImage = memo(({ imageData, isSelected, onSelect, onChange, onDragMove }) => {
+const CanvasImage = memo(({ imageData, isSelected, onSelect, onChange, onDragMove, onDragEnd, onTransformEnd }) => {
   const [img] = useImage(imageData.src);
   const shapeRef = useRef();
   const trRef = useRef();
@@ -50,6 +50,7 @@ const CanvasImage = memo(({ imageData, isSelected, onSelect, onChange, onDragMov
           node.y(node.y() + dy);
         }}
         onDragEnd={(e) => {
+          onDragEnd(); // Limpiar guías
           onChange({
             ...imageData,
             x: e.target.x(),
@@ -57,6 +58,7 @@ const CanvasImage = memo(({ imageData, isSelected, onSelect, onChange, onDragMov
           });
         }}
         onTransformEnd={() => {
+          onTransformEnd(); // Limpiar guías
           const node = shapeRef.current;
           const scaleX = node.scaleX();
           const scaleY = node.scaleY();

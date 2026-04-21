@@ -38,6 +38,7 @@ const CanvasEditor = ({ initialImages = [], onBack, onFinishDesign }) => {
   const [containerSize, setContainerSize] = useState({ width: window.innerWidth, height: window.innerHeight });
   const [isConfigOpen, setIsConfigOpen] = useState(false);
   const [showHelp, setShowHelp] = useState(() => !localStorage.getItem('melo_help_seen'));
+  const [showConfirmBack, setShowConfirmBack] = useState(false);
   const [isSending, setIsSending] = useState(false);
 
   const stageRef = useRef(null);
@@ -114,7 +115,7 @@ const CanvasEditor = ({ initialImages = [], onBack, onFinishDesign }) => {
     return { canvasWidth: cw, canvasHeight: ch };
   }, [containerSize, paperAspect]);
 
-  const { guideLines, handleDragMove } = useCanvasSnap(canvasWidth, canvasHeight, elements, selectedId);
+  const { guideLines, handleDragMove, clearGuides } = useCanvasSnap(canvasWidth, canvasHeight, elements, selectedId);
   useCanvasKeyboard(elements, selectedId, setElements, () => {}, setSelectedId); // Unificado
 
   // ResizeObserver para el contenedor
@@ -271,7 +272,13 @@ const CanvasEditor = ({ initialImages = [], onBack, onFinishDesign }) => {
       {/* Header Flotante Premium */}
       <div className="absolute top-0 inset-x-0 z-[100] p-4 pointer-events-none">
         <div className="max-w-2xl mx-auto flex justify-between items-center bg-white/70 backdrop-blur-xl border border-white/40 p-2 rounded-3xl shadow-xl pointer-events-auto">
-          <button onClick={onBack} className="flex items-center gap-2 px-4 py-2 text-slate-800 font-black text-xs hover:bg-slate-100 rounded-2xl transition-all">
+          <button 
+            onClick={() => {
+              if (elements.length > 0) setShowConfirmBack(true);
+              else onBack();
+            }} 
+            className="flex items-center gap-2 px-4 py-2 text-slate-800 font-black text-xs hover:bg-slate-100 rounded-2xl transition-all"
+          >
             <ChevronLeft className="w-5 h-5" /> ATRÁS
           </button>
           
@@ -324,6 +331,8 @@ const CanvasEditor = ({ initialImages = [], onBack, onFinishDesign }) => {
                     key={el.id} textData={el} isSelected={el.id === selectedId}
                     onSelect={() => setSelectedId(el.id)}
                     onDragMove={handleDragMove}
+                    onDragEnd={clearGuides}
+                    onTransformEnd={clearGuides}
                     onChange={(updated) => setElements(prev => prev.map(e => e.id === updated.id ? updated : e))}
                   />
                 ) : (
@@ -331,6 +340,8 @@ const CanvasEditor = ({ initialImages = [], onBack, onFinishDesign }) => {
                     key={el.id} imageData={el} isSelected={el.id === selectedId} 
                     onSelect={() => setSelectedId(el.id)} 
                     onDragMove={handleDragMove} 
+                    onDragEnd={clearGuides}
+                    onTransformEnd={clearGuides}
                     onChange={(updated) => setElements(prev => prev.map(e => e.id === updated.id ? updated : e))} 
                   />
                 )
@@ -415,6 +426,48 @@ const CanvasEditor = ({ initialImages = [], onBack, onFinishDesign }) => {
               >
                 ¡A DISEÑAR!
               </button>
+            </motion.div>
+          </motion.div>
+        )}
+      </AnimatePresence>
+      {/* Modal de Confirmación de Salida */}
+      <AnimatePresence>
+        {showConfirmBack && (
+          <motion.div 
+            initial={{ opacity: 0 }} animate={{ opacity: 1 }} exit={{ opacity: 0 }}
+            className="absolute inset-0 z-[2000] bg-slate-900/60 backdrop-blur-sm flex items-center justify-center p-6"
+          >
+            <motion.div 
+              initial={{ scale: 0.9, y: 20 }} animate={{ scale: 1, y: 0 }}
+              className="bg-white rounded-[2.5rem] p-8 max-w-xs w-full text-center space-y-6 shadow-2xl"
+            >
+              <div className="w-16 h-16 bg-red-100 text-red-500 rounded-3xl flex items-center justify-center mx-auto">
+                <Info className="w-8 h-8" />
+              </div>
+              <div>
+                <h3 className="text-xl font-black text-slate-900">¿Estás seguro?</h3>
+                <p className="text-sm text-slate-500 mt-2">
+                  Se perderán todos los cambios que hayas hecho en tu diseño.
+                </p>
+              </div>
+              <div className="space-y-3">
+                <button 
+                  onClick={() => {
+                    localStorage.removeItem(STORAGE_KEY);
+                    localStorage.removeItem(`${STORAGE_KEY}_config`);
+                    onBack();
+                  }} 
+                  className="w-full py-4 rounded-2xl bg-red-500 text-white font-black text-sm active:scale-95 transition-all"
+                >
+                  SÍ, SALIR Y LIMPIAR
+                </button>
+                <button 
+                  onClick={() => setShowConfirmBack(false)} 
+                  className="w-full py-4 rounded-2xl bg-slate-100 text-slate-600 font-black text-sm active:scale-95 transition-all"
+                >
+                  CONTINUAR DISEÑANDO
+                </button>
+              </div>
             </motion.div>
           </motion.div>
         )}
