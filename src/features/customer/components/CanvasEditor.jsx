@@ -33,21 +33,33 @@ const CanvasEditor = ({ initialImages = [], onBack, onFinishDesign }) => {
   const canvasContainerRef = useRef(null);
   const [stageSize, setStageSize] = useState({ width: window.innerWidth, height: window.innerHeight });
 
-  // Bloqueo total del scroll del body y ocultación de UI del sistema
+  // Bloqueo total del scroll y forzado de altura real del viewport
   useEffect(() => {
-    document.body.style.overflow = 'hidden';
-    document.body.style.position = 'fixed';
-    document.body.style.width = '100%';
-    document.body.style.height = '100dvh'; // Dynamic Viewport Height
+    const html = document.documentElement;
+    const body = document.body;
+    
+    // Guardamos estilos originales para restaurarlos luego
+    const originalHtmlStyle = { overflow: html.style.overflow, height: html.style.height };
+    const originalBodyStyle = { overflow: body.style.overflow, height: body.style.height, position: body.style.position, width: body.style.width };
+
+    // Aplicamos bloqueo "True Fullscreen"
+    html.style.overflow = 'hidden';
+    html.style.height = '100dvh';
+    body.style.overflow = 'hidden';
+    body.style.height = '100dvh';
+    body.style.position = 'fixed';
+    body.style.width = '100%';
     
     const elementsToHide = document.querySelectorAll('nav, footer, .fixed.bottom-6, .fixed.bottom-0.h-40');
     elementsToHide.forEach(el => el.style.display = 'none');
     
     return () => {
-      document.body.style.overflow = '';
-      document.body.style.position = '';
-      document.body.style.width = '';
-      document.body.style.height = '';
+      html.style.overflow = originalHtmlStyle.overflow;
+      html.style.height = originalHtmlStyle.height;
+      body.style.overflow = originalBodyStyle.overflow;
+      body.style.height = originalBodyStyle.height;
+      body.style.position = originalBodyStyle.position;
+      body.style.width = originalBodyStyle.width;
       elementsToHide.forEach(el => el.style.display = '');
     };
   }, []);
