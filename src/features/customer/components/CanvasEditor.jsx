@@ -289,60 +289,59 @@ const CanvasEditor = ({ initialImages = [], onBack, onFinishDesign }) => {
 
       {/* Contenedor del Canvas (Llenado total) */}
       <div ref={canvasContainerRef} className="flex-1 w-full h-full cursor-grab active:cursor-grabbing touch-none">
-        <Stage
-          ref={stageRef} 
-          width={stageSize.width} 
-          height={stageSize.height}
-          x={stagePos.x} y={stagePos.y} 
-          // SOLID: Deshabilitar drag si hay más de un dedo para evitar conflictos con el zoom
-          draggable={true}
-          onDragStart={(e) => {
-            if (e.evt && e.evt.touches && e.evt.touches.length > 1) {
-              e.target.stopDrag();
-            }
-          }}
-          onDragEnd={(e) => { if (e.target === stageRef.current) setStagePos({ x: e.target.x(), y: e.target.y() }); }}
-          scaleX={zoom} scaleY={zoom} 
-          onWheel={handleWheel} 
-          onTouchStart={handleTouchStart}
-          onTouchMove={handleTouchMove}
-          onTouchEnd={handleTouchEnd}
-          onClick={handleStageClick} 
-          onTap={handleStageClick}
-        >
-          <Layer>
-            {/* Sombras de la hoja para realismo - listening={false} para optimizar */}
-            <Rect 
-              x={-5} y={-5} width={canvasWidth + 10} height={canvasHeight + 10} 
-              fill="#000" opacity={0.05} cornerRadius={4} shadowBlur={20} shadowOpacity={0.2}
-              listening={false}
-            />
-            {/* Hoja Blanca */}
-            <Rect id="bg" x={0} y={0} width={canvasWidth} height={canvasHeight} fill="white" listening={false} />
-            
-            {elements.map(el => (
-              el.type === 'text' ? (
-                <CanvasText
-                  key={el.id} textData={el} isSelected={el.id === selectedId}
-                  onSelect={() => setSelectedId(el.id)}
-                  onDragMove={handleDragMove}
-                  onChange={(updated) => setElements(prev => prev.map(e => e.id === updated.id ? updated : e))}
-                />
-              ) : (
-                <CanvasImage 
-                  key={el.id} imageData={el} isSelected={el.id === selectedId} 
-                  onSelect={() => setSelectedId(el.id)} 
-                  onDragMove={handleDragMove} 
-                  onChange={(updated) => setElements(prev => prev.map(e => e.id === updated.id ? updated : e))} 
-                />
-              )
-            ))}
-            
-            {guideLines.map((l, i) => (
-              <Line key={i} points={[l.x1, l.y1, l.x2, l.y2]} stroke="#ec4899" strokeWidth={1.5 / zoom} dash={[4 / zoom, 4 / zoom]} listening={false} />
-            ))}
-          </Layer>
-        </Stage>
+        {useMemo(() => (
+          <Stage
+            ref={stageRef} 
+            width={stageSize.width} 
+            height={stageSize.height}
+            x={stagePos.x} y={stagePos.y} 
+            draggable={true}
+            onDragStart={(e) => {
+              if (e.evt && e.evt.touches && e.evt.touches.length > 1) {
+                e.target.stopDrag();
+              }
+            }}
+            onDragEnd={(e) => { if (e.target === stageRef.current) setStagePos({ x: e.target.x(), y: e.target.y() }); }}
+            scaleX={zoom} scaleY={zoom} 
+            onWheel={handleWheel} 
+            onTouchStart={handleTouchStart}
+            onTouchMove={handleTouchMove}
+            onTouchEnd={handleTouchEnd}
+            onClick={handleStageClick} 
+            onTap={handleStageClick}
+          >
+            <Layer>
+              <Rect 
+                x={-5} y={-5} width={canvasWidth + 10} height={canvasHeight + 10} 
+                fill="#000" opacity={0.05} cornerRadius={4} shadowBlur={20} shadowOpacity={0.2}
+                listening={false}
+              />
+              <Rect id="bg" x={0} y={0} width={canvasWidth} height={canvasHeight} fill="white" listening={false} />
+              
+              {elements.map(el => (
+                el.type === 'text' ? (
+                  <CanvasText
+                    key={el.id} textData={el} isSelected={el.id === selectedId}
+                    onSelect={() => setSelectedId(el.id)}
+                    onDragMove={handleDragMove}
+                    onChange={(updated) => setElements(prev => prev.map(e => e.id === updated.id ? updated : e))}
+                  />
+                ) : (
+                  <CanvasImage 
+                    key={el.id} imageData={el} isSelected={el.id === selectedId} 
+                    onSelect={() => setSelectedId(el.id)} 
+                    onDragMove={handleDragMove} 
+                    onChange={(updated) => setElements(prev => prev.map(e => e.id === updated.id ? updated : e))} 
+                  />
+                )
+              ))}
+              
+              {guideLines.map((l, i) => (
+                <Line key={i} points={[l.x1, l.y1, l.x2, l.y2]} stroke="#ec4899" strokeWidth={1.5 / zoom} dash={[4 / zoom, 4 / zoom]} listening={false} />
+              ))}
+            </Layer>
+          </Stage>
+        ), [stageSize, stagePos, zoom, canvasWidth, canvasHeight, elements, selectedId, guideLines])}
       </div>
 
       {/* Toolbar Flotante Inferior (Ajuste dinámico para Gestos y Botones) */}

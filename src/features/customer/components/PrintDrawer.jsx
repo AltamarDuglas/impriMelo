@@ -21,7 +21,7 @@ const PrintDrawer = memo(({ isOpen, onClose, paperConfig, onPaperChange, onSendT
             animate={{ opacity: 1 }}
             exit={{ opacity: 0 }}
             onClick={onClose}
-            className="fixed inset-0 z-[190] bg-slate-900/40 backdrop-blur-[2px]"
+            className="fixed inset-0 z-[190] bg-slate-900/60"
           />
 
           <motion.div
