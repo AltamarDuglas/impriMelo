@@ -142,22 +142,28 @@ const CanvasEditor = ({ initialImages = [], onBack, onFinishDesign }) => {
     });
   }, [containerSize.width, containerSize.height, canvasWidth, canvasHeight, zoom]);
 
-  // Helper para procesar imágenes manteniendo aspect ratio
+  // Helper para procesar imágenes manteniendo aspect ratio y maximizando tamaño
   const processImage = (src, index = 0) => {
     return new Promise((resolve) => {
       const img = new Image();
       img.onload = () => {
-        const maxDim = 180; // Tamaño base para que no sea gigante
+        const margin = 40; // Margen de seguridad total (20px por lado)
+        const targetW = canvasWidth - margin;
+        const targetH = canvasHeight - margin;
+        
         let w = img.width;
         let h = img.height;
-        const ratio = w / h;
+        const imgRatio = w / h;
+        const targetRatio = targetW / targetH;
 
-        if (w > h) {
-          w = maxDim;
-          h = maxDim / ratio;
+        if (imgRatio > targetRatio) {
+          // La imagen es más ancha que el área objetivo proporcionalmente
+          w = targetW;
+          h = targetW / imgRatio;
         } else {
-          h = maxDim;
-          w = maxDim * ratio;
+          // La imagen es más alta que el área objetivo proporcionalmente
+          h = targetH;
+          w = targetH * imgRatio;
         }
 
         resolve({
