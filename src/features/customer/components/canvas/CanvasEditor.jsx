@@ -122,13 +122,13 @@ const CanvasEditor = ({ initialImages = [], initialElements = [], initialConfig 
     return () => observer.disconnect();
   }, []);
 
-  // Centrar el Stage inicialmente
+  // Centrar el Stage inicialmente (Solo al montar o cambiar el papel/contenedor)
   useEffect(() => {
     setStagePos({
       x: (containerSize.width - canvasWidth * zoom) / 2,
-      y: (containerSize.height - canvasHeight * zoom) / 2 - 40 // Un poco arriba para la toolbar
+      y: (containerSize.height - canvasHeight * zoom) / 2 - 40
     });
-  }, [containerSize.width, containerSize.height, canvasWidth, canvasHeight, zoom]);
+  }, [containerSize.width, containerSize.height, canvasWidth, canvasHeight]); // Quitamos 'zoom' de aquí para evitar el centrado automático al zumear
 
   // Helper para procesar imágenes manteniendo aspect ratio y maximizando tamaño
   const processImage = (src, index = 0) => {
@@ -186,8 +186,14 @@ const CanvasEditor = ({ initialImages = [], initialElements = [], initialConfig 
     const ns = Math.min(3, Math.max(0.3, e.evt.deltaY > 0 ? oldScale / 1.05 : oldScale * 1.05));
 
     requestAnimationFrame(() => {
+      // Actualización directa para suavidad total
+      stage.scale({ x: ns, y: ns });
+      const newPos = { x: pointer.x - mp.x * ns, y: pointer.y - mp.y * ns };
+      stage.position(newPos);
+      stage.batchDraw();
+
       setZoom(ns);
-      setStagePos({ x: pointer.x - mp.x * ns, y: pointer.y - mp.y * ns });
+      setStagePos(newPos);
     });
   };
 
@@ -220,6 +226,11 @@ const CanvasEditor = ({ initialImages = [], initialElements = [], initialConfig 
       const stage = stageRef.current;
       if (!stage) return;
 
+      // Si estamos arrastrando el lienzo con un dedo y entra el segundo, paramos el drag nativo
+      if (stage.isDragging()) {
+        stage.stopDrag();
+      }
+
       const p1 = { x: e.evt.touches[0].clientX, y: e.evt.touches[0].clientY };
       const p2 = { x: e.evt.touches[1].clientX, y: e.evt.touches[1].clientY };
       const dist = getDistance(p1, p2);
@@ -231,28 +242,36 @@ const CanvasEditor = ({ initialImages = [], initialElements = [], initialConfig 
         y: centerViewport.y - containerRect.top
       };
 
-      // FIX: Si el touchStart falló, inicializamos aquí.
+      // Inicialización de emergencia si el touchStart no capturó bien el evento
       if (!lastDistRef.current) lastDistRef.current = dist;
       if (!lastCenterRef.current) lastCenterRef.current = newCenter;
 
-      // FIX: Evitar división por cero
       if (lastDistRef.current === 0) return;
 
       const oldScale = stage.scaleX();
       const newScale = Math.min(3, Math.max(0.3, oldScale * (dist / lastDistRef.current)));
 
-      // Encontramos qué punto del lienzo estaba bajo los dedos antes de moverse
+      // El punto del lienzo que estaba bajo el centro del gesto antes de este movimiento
       const pointTo = {
         x: (lastCenterRef.current.x - stage.x()) / oldScale,
         y: (lastCenterRef.current.y - stage.y()) / oldScale,
       };
 
-      // Queremos que ese mismo punto del lienzo quede bajo la NUEVA posición de los dedos
+      // Nueva posición: el mismo punto del lienzo debe seguir bajo la nueva posición del centro del gesto
       const newPos = {
         x: newCenter.x - pointTo.x * newScale,
         y: newCenter.y - pointTo.y * newScale,
       };
 
+      // ACTUALIZACIÓN DIRECTA (Imperativa): Esto es la clave de los 60fps
+      // Actualizamos el nodo de Konva inmediatamente para que el próximo evento táctil
+      // (que llega en milisegundos) lea la posición real actualizada.
+      stage.scale({ x: newScale, y: newScale });
+      stage.position(newPos);
+      stage.batchDraw();
+
+      // Sincronizamos con React para que el resto de la UI se entere,
+      // pero lo hacemos en el siguiente frame para no bloquear el hilo principal.
       requestAnimationFrame(() => {
         setZoom(newScale);
         setStagePos(newPos);
