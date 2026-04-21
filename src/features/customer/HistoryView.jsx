@@ -1,5 +1,5 @@
 import React, { useState, useEffect } from 'react';
-import OrderHistory from './components/OrderHistory';
+import OrderHistory from './components/history/OrderHistory';
 import { useAuth } from '../../context/AuthContext';
 
 const HistoryView = () => {

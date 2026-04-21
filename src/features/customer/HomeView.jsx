@@ -6,11 +6,11 @@ import * as pdfjsLib from 'pdfjs-dist';
 import pdfWorker from 'pdfjs-dist/build/pdf.worker.min.mjs?url';
 
 import { PRICES } from './HomeConstants';
-import UploadStep from './components/UploadStep';
-import ConfigStep from './components/ConfigStep';
-import CheckoutStep from './components/CheckoutStep';
-import SuccessStep from './components/SuccessStep';
-import CanvasEditor from './components/CanvasEditor';
+import UploadStep from './components/steps/UploadStep';
+import ConfigStep from './components/steps/ConfigStep';
+import CheckoutStep from './components/steps/CheckoutStep';
+import SuccessStep from './components/steps/SuccessStep';
+import CanvasEditor from './components/canvas/CanvasEditor';
 
 pdfjsLib.GlobalWorkerOptions.workerSrc = pdfWorker;
 
