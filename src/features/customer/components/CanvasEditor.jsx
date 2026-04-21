@@ -200,10 +200,17 @@ const CanvasEditor = ({ initialImages = [], initialElements = [], initialConfig 
 
   const handleTouchStart = (e) => {
     if (e.evt.touches.length === 2) {
+      const stage = stageRef.current;
+      const containerRect = stage.container().getBoundingClientRect();
       const p1 = { x: e.evt.touches[0].clientX, y: e.evt.touches[0].clientY };
       const p2 = { x: e.evt.touches[1].clientX, y: e.evt.touches[1].clientY };
       lastDistRef.current = getDistance(p1, p2);
-      lastCenterRef.current = getCenter(p1, p2);
+      
+      const centerViewport = getCenter(p1, p2);
+      lastCenterRef.current = {
+        x: centerViewport.x - containerRect.left,
+        y: centerViewport.y - containerRect.top
+      };
     }
   };
 
@@ -216,21 +223,27 @@ const CanvasEditor = ({ initialImages = [], initialElements = [], initialConfig 
       const p1 = { x: e.evt.touches[0].clientX, y: e.evt.touches[0].clientY };
       const p2 = { x: e.evt.touches[1].clientX, y: e.evt.touches[1].clientY };
       const dist = getDistance(p1, p2);
-      const center = getCenter(p1, p2);
+      
+      const containerRect = stage.container().getBoundingClientRect();
+      const centerViewport = getCenter(p1, p2);
+      const newCenter = {
+        x: centerViewport.x - containerRect.left,
+        y: centerViewport.y - containerRect.top
+      };
 
       const oldScale = stage.scaleX();
       const newScale = Math.min(3, Math.max(0.3, oldScale * (dist / lastDistRef.current)));
 
-      // Calcular nueva posición para mantener el centro del zoom
-      const stagePointer = stage.getPointerPosition() || center;
-      const mousePointTo = {
-        x: (stagePointer.x - stage.x()) / oldScale,
-        y: (stagePointer.y - stage.y()) / oldScale,
+      // Encontramos qué punto del lienzo estaba bajo los dedos antes de moverse
+      const pointTo = {
+        x: (lastCenterRef.current.x - stage.x()) / oldScale,
+        y: (lastCenterRef.current.y - stage.y()) / oldScale,
       };
 
+      // Queremos que ese mismo punto del lienzo quede bajo la NUEVA posición de los dedos
       const newPos = {
-        x: stagePointer.x - mousePointTo.x * newScale,
-        y: stagePointer.y - mousePointTo.y * newScale,
+        x: newCenter.x - pointTo.x * newScale,
+        y: newCenter.y - pointTo.y * newScale,
       };
 
       requestAnimationFrame(() => {
@@ -239,7 +252,7 @@ const CanvasEditor = ({ initialImages = [], initialElements = [], initialConfig 
       });
       
       lastDistRef.current = dist;
-      lastCenterRef.current = center;
+      lastCenterRef.current = newCenter;
     }
   };
 
