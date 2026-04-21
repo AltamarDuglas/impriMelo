@@ -27,6 +27,13 @@ const CanvasImage = memo(({ imageData, isSelected, onSelect, onChange, onDragMov
         {...imageData}
         image={img}
         draggable
+        onDragStart={(e) => {
+          if (e.evt && e.evt.touches && e.evt.touches.length > 1) {
+            e.target.stopDrag();
+            return;
+          }
+          onSelect();
+        }}
         onClick={onSelect}
         onTap={onSelect}
         onDragMove={(e) => {

@@ -231,6 +231,13 @@ const CanvasEditor = ({ initialImages = [], initialElements = [], initialConfig 
         y: centerViewport.y - containerRect.top
       };
 
+      // FIX: Si el touchStart falló, inicializamos aquí.
+      if (!lastDistRef.current) lastDistRef.current = dist;
+      if (!lastCenterRef.current) lastCenterRef.current = newCenter;
+      
+      // FIX: Evitar división por cero
+      if (lastDistRef.current === 0) return;
+
       const oldScale = stage.scaleX();
       const newScale = Math.min(3, Math.max(0.3, oldScale * (dist / lastDistRef.current)));
 

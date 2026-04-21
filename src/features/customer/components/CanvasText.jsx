@@ -24,6 +24,13 @@ const CanvasText = ({ textData, isSelected, onSelect, onChange, onDragMove, onDr
         ref={shapeRef}
         {...textData}
         draggable
+        onDragStart={(e) => {
+          if (e.evt && e.evt.touches && e.evt.touches.length > 1) {
+            e.target.stopDrag();
+            return;
+          }
+          onSelect();
+        }}
         onClick={onSelect}
         onTap={onSelect}
         onDragMove={(e) => {
