@@ -195,7 +195,7 @@ const CanvasEditor = ({ initialImages = [], onBack, onFinishDesign }) => {
       </div>
 
       {/* Toolbar Flotante Inferior */}
-      <div className="absolute bottom-8 inset-x-0 z-[100] flex justify-center px-4 pointer-events-none">
+      <div className="absolute bottom-12 pb-[env(safe-area-inset-bottom)] inset-x-0 z-[100] flex justify-center px-4 pointer-events-none">
         <div className="pointer-events-auto">
           <CanvasToolbar
             onAddImage={(files) => { 
