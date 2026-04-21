@@ -26,7 +26,7 @@ const CanvasEditor = ({ initialImages = [], onBack, onFinishDesign }) => {
     const saved = localStorage.getItem(`${STORAGE_KEY}_config`);
     return saved ? JSON.parse(saved) : { sizeId: 'carta', orientation: 'portrait' };
   });
-  
+
   const [elements, setElements] = useState(() => {
     const saved = localStorage.getItem(STORAGE_KEY);
     return saved ? JSON.parse(saved) : [];
@@ -49,7 +49,7 @@ const CanvasEditor = ({ initialImages = [], onBack, onFinishDesign }) => {
   useEffect(() => {
     const html = document.documentElement;
     const body = document.body;
-    
+
     // Guardamos estilos originales para restaurarlos luego
     const originalHtmlStyle = { overflow: html.style.overflow, height: html.style.height };
     const originalBodyStyle = { overflow: body.style.overflow, height: body.style.height, position: body.style.position, width: body.style.width };
@@ -69,10 +69,10 @@ const CanvasEditor = ({ initialImages = [], onBack, onFinishDesign }) => {
 
     window.addEventListener('resize', updateHeight);
     updateHeight(); // Llamada inicial
-    
+
     const elementsToHide = document.querySelectorAll('nav, footer, .fixed.bottom-6, .fixed.bottom-0.h-40');
     elementsToHide.forEach(el => el.style.display = 'none');
-    
+
     return () => {
       window.removeEventListener('resize', updateHeight);
       html.style.overflow = originalHtmlStyle.overflow;
@@ -92,7 +92,7 @@ const CanvasEditor = ({ initialImages = [], onBack, onFinishDesign }) => {
   }, [elements, paperConfig]);
 
   const selectedPaper = useMemo(() => PAPER_SIZES.find(p => p.id === paperConfig.sizeId), [paperConfig.sizeId]);
-  
+
   const { paperWidthMm, paperHeightMm, paperAspect } = useMemo(() => {
     const w = selectedPaper ? (paperConfig.orientation === 'landscape' ? selectedPaper.heightMm : selectedPaper.widthMm) : 215.9;
     const h = selectedPaper ? (paperConfig.orientation === 'landscape' ? selectedPaper.widthMm : selectedPaper.heightMm) : 279.4;
@@ -104,7 +104,7 @@ const CanvasEditor = ({ initialImages = [], onBack, onFinishDesign }) => {
     const availableW = containerSize.width;
     const availableH = containerSize.height;
     let cw, ch;
-    
+
     if (availableW / availableH > paperAspect) {
       ch = availableH * 0.7;
       cw = ch * paperAspect;
@@ -116,7 +116,7 @@ const CanvasEditor = ({ initialImages = [], onBack, onFinishDesign }) => {
   }, [containerSize, paperAspect]);
 
   const { guideLines, handleDragMove, clearGuides } = useCanvasSnap(canvasWidth, canvasHeight, elements, selectedId);
-  useCanvasKeyboard(elements, selectedId, setElements, () => {}, setSelectedId); // Unificado
+  useCanvasKeyboard(elements, selectedId, setElements, () => { }, setSelectedId); // Unificado
 
   // ResizeObserver para el contenedor
   useEffect(() => {
@@ -136,8 +136,8 @@ const CanvasEditor = ({ initialImages = [], onBack, onFinishDesign }) => {
 
   // Centrar el Stage inicialmente
   useEffect(() => {
-    setStagePos({ 
-      x: (containerSize.width - canvasWidth * zoom) / 2, 
+    setStagePos({
+      x: (containerSize.width - canvasWidth * zoom) / 2,
       y: (containerSize.height - canvasHeight * zoom) / 2 - 40 // Un poco arriba para la toolbar
     });
   }, [containerSize.width, containerSize.height, canvasWidth, canvasHeight, zoom]);
@@ -239,7 +239,7 @@ const CanvasEditor = ({ initialImages = [], onBack, onFinishDesign }) => {
       // SOLID: Agrupamos actualizaciones para evitar renders intermedios que causen "vibración"
       setZoom(newScale);
       setStagePos(newPos);
-      
+
       lastDistRef.current = dist;
       lastCenterRef.current = center;
     }
@@ -265,26 +265,26 @@ const CanvasEditor = ({ initialImages = [], onBack, onFinishDesign }) => {
   };
 
   return (
-    <div 
+    <div
       className="fixed top-0 left-0 right-0 z-[99999] bg-[#EFEFEF] flex flex-col overflow-hidden select-none"
       style={{ height: `${containerSize.height}px` }}
     >
       {/* Header Flotante Premium */}
       <div className="absolute top-0 inset-x-0 z-[100] p-4 pointer-events-none">
         <div className="max-w-2xl mx-auto flex justify-between items-center bg-white/70 backdrop-blur-xl border border-white/40 p-2 rounded-3xl shadow-xl pointer-events-auto">
-          <button 
+          <button
             onClick={() => {
               if (elements.length > 0) setShowConfirmBack(true);
               else onBack();
-            }} 
+            }}
             className="flex items-center gap-2 px-4 py-2 text-slate-800 font-black text-xs hover:bg-slate-100 rounded-2xl transition-all"
           >
             <ChevronLeft className="w-5 h-5" /> ATRÁS
           </button>
-          
+
           <div className="flex flex-col items-center">
             <span className="text-[10px] font-black uppercase text-slate-400 tracking-widest leading-none">Diseño</span>
-            <span className="text-[12px] font-black text-slate-900 uppercase">{selectedPaper?.label} {paperConfig.orientation === 'portrait' ? 'V' : 'H'}</span>
+            <span className="text-[12px] font-black text-slate-900 uppercase">{selectedPaper?.label} {paperConfig.orientation === 'portrait' ? 'Vertical' : 'Horizontal'}</span>
           </div>
 
           <button onClick={() => setIsConfigOpen(true)}
@@ -298,10 +298,10 @@ const CanvasEditor = ({ initialImages = [], onBack, onFinishDesign }) => {
       <div ref={canvasContainerRef} className="flex-1 w-full h-full cursor-grab active:cursor-grabbing touch-none">
         {useMemo(() => (
           <Stage
-            ref={stageRef} 
-            width={stageSize.width} 
+            ref={stageRef}
+            width={stageSize.width}
             height={stageSize.height}
-            x={stagePos.x} y={stagePos.y} 
+            x={stagePos.x} y={stagePos.y}
             draggable={true}
             onDragStart={(e) => {
               if (e.evt && e.evt.touches && e.evt.touches.length > 1) {
@@ -309,22 +309,22 @@ const CanvasEditor = ({ initialImages = [], onBack, onFinishDesign }) => {
               }
             }}
             onDragEnd={(e) => { if (e.target === stageRef.current) setStagePos({ x: e.target.x(), y: e.target.y() }); }}
-            scaleX={zoom} scaleY={zoom} 
-            onWheel={handleWheel} 
+            scaleX={zoom} scaleY={zoom}
+            onWheel={handleWheel}
             onTouchStart={handleTouchStart}
             onTouchMove={handleTouchMove}
             onTouchEnd={handleTouchEnd}
-            onClick={handleStageClick} 
+            onClick={handleStageClick}
             onTap={handleStageClick}
           >
             <Layer>
-              <Rect 
-                x={-5} y={-5} width={canvasWidth + 10} height={canvasHeight + 10} 
+              <Rect
+                x={-5} y={-5} width={canvasWidth + 10} height={canvasHeight + 10}
                 fill="#000" opacity={0.05} cornerRadius={4} shadowBlur={20} shadowOpacity={0.2}
                 listening={false}
               />
               <Rect id="bg" x={0} y={0} width={canvasWidth} height={canvasHeight} fill="white" listening={false} />
-              
+
               {elements.map(el => (
                 el.type === 'text' ? (
                   <CanvasText
@@ -336,17 +336,17 @@ const CanvasEditor = ({ initialImages = [], onBack, onFinishDesign }) => {
                     onChange={(updated) => setElements(prev => prev.map(e => e.id === updated.id ? updated : e))}
                   />
                 ) : (
-                  <CanvasImage 
-                    key={el.id} imageData={el} isSelected={el.id === selectedId} 
-                    onSelect={() => setSelectedId(el.id)} 
-                    onDragMove={handleDragMove} 
+                  <CanvasImage
+                    key={el.id} imageData={el} isSelected={el.id === selectedId}
+                    onSelect={() => setSelectedId(el.id)}
+                    onDragMove={handleDragMove}
                     onDragEnd={clearGuides}
                     onTransformEnd={clearGuides}
-                    onChange={(updated) => setElements(prev => prev.map(e => e.id === updated.id ? updated : e))} 
+                    onChange={(updated) => setElements(prev => prev.map(e => e.id === updated.id ? updated : e))}
                   />
                 )
               ))}
-              
+
               {guideLines.map((l, i) => (
                 <Line key={i} points={[l.x1, l.y1, l.x2, l.y2]} stroke="#ec4899" strokeWidth={1.5 / zoom} dash={[4 / zoom, 4 / zoom]} listening={false} />
               ))}
@@ -359,25 +359,25 @@ const CanvasEditor = ({ initialImages = [], onBack, onFinishDesign }) => {
       <div className="absolute bottom-[calc(env(safe-area-inset-bottom,0px)+1.5rem)] inset-x-0 z-[100] flex justify-center px-4 pointer-events-none">
         <div className="pointer-events-auto">
           <CanvasToolbar
-            onAddImage={async (files) => { 
+            onAddImage={async (files) => {
               const newElements = await Promise.all(files.map((f, i) => processImage(URL.createObjectURL(f), i)));
-              setElements(prev => [...prev, ...newElements]); 
+              setElements(prev => [...prev, ...newElements]);
             }}
-            onAddText={() => { 
-              const t = { 
-                id: `el-${Date.now()}`, 
+            onAddText={() => {
+              const t = {
+                id: `el-${Date.now()}`,
                 type: 'text',
-                text: 'Doble clic para editar', 
-                x: 50, y: 50, 
-                fontSize: 24, 
+                text: 'Doble clic para editar',
+                x: 50, y: 50,
+                fontSize: 24,
                 fontFamily: 'Inter',
                 fontStyle: 'bold',
                 fill: '#1e293b',
                 width: 200,
                 rotation: 0
-              }; 
-              setElements(prev => [...prev, t]); 
-              setSelectedId(t.id); 
+              };
+              setElements(prev => [...prev, t]);
+              setSelectedId(t.id);
             }}
             onDeleteSelected={() => { setElements(prev => prev.filter(e => e.id !== selectedId)); setSelectedId(null); }}
             zoom={zoom} onZoomChange={setZoom} hasSelection={!!selectedId}
@@ -386,23 +386,23 @@ const CanvasEditor = ({ initialImages = [], onBack, onFinishDesign }) => {
       </div>
 
       {/* PrintDrawer (Modal Inferior) */}
-      <PrintDrawer 
-        isOpen={isConfigOpen} 
-        onClose={() => setIsConfigOpen(false)} 
-        paperConfig={paperConfig} 
-        onPaperChange={setPaperConfig} 
-        onSendToPrint={handleSendToPrint} 
-        isSending={isSending} 
+      <PrintDrawer
+        isOpen={isConfigOpen}
+        onClose={() => setIsConfigOpen(false)}
+        paperConfig={paperConfig}
+        onPaperChange={setPaperConfig}
+        onSendToPrint={handleSendToPrint}
+        isSending={isSending}
       />
 
       {/* Overlay de Ayuda / Tutorial rápido */}
       <AnimatePresence>
         {showHelp && (
-          <motion.div 
+          <motion.div
             initial={{ opacity: 0 }} animate={{ opacity: 1 }} exit={{ opacity: 0 }}
             className="absolute inset-0 z-[1000] bg-slate-900/40 backdrop-blur-sm flex items-center justify-center p-6"
           >
-            <motion.div 
+            <motion.div
               initial={{ scale: 0.9, y: 20 }} animate={{ scale: 1, y: 0 }}
               className="bg-white rounded-[3rem] p-8 max-w-xs text-center space-y-6 shadow-2xl border border-white"
             >
@@ -412,16 +412,16 @@ const CanvasEditor = ({ initialImages = [], onBack, onFinishDesign }) => {
               <div>
                 <h3 className="text-2xl font-black text-slate-900">¡Todo MELO!</h3>
                 <p className="text-sm text-slate-500 mt-2">
-                  Arrastra el fondo para mover la hoja.<br/>
-                  Pincha para hacer zoom.<br/>
+                  Arrastra el fondo para mover la hoja.<br />
+                  Pincha para hacer zoom.<br />
                   Toca una foto para editarla.
                 </p>
               </div>
-              <button 
+              <button
                 onClick={() => {
                   setShowHelp(false);
                   localStorage.setItem('melo_help_seen', 'true');
-                }} 
+                }}
                 className="btn-melo w-full py-4 rounded-2xl text-sm"
               >
                 ¡A DISEÑAR!
@@ -433,11 +433,11 @@ const CanvasEditor = ({ initialImages = [], onBack, onFinishDesign }) => {
       {/* Modal de Confirmación de Salida */}
       <AnimatePresence>
         {showConfirmBack && (
-          <motion.div 
+          <motion.div
             initial={{ opacity: 0 }} animate={{ opacity: 1 }} exit={{ opacity: 0 }}
             className="absolute inset-0 z-[2000] bg-slate-900/60 backdrop-blur-sm flex items-center justify-center p-6"
           >
-            <motion.div 
+            <motion.div
               initial={{ scale: 0.9, y: 20 }} animate={{ scale: 1, y: 0 }}
               className="bg-white rounded-[2.5rem] p-8 max-w-xs w-full text-center space-y-6 shadow-2xl"
             >
@@ -451,18 +451,18 @@ const CanvasEditor = ({ initialImages = [], onBack, onFinishDesign }) => {
                 </p>
               </div>
               <div className="space-y-3">
-                <button 
+                <button
                   onClick={() => {
                     localStorage.removeItem(STORAGE_KEY);
                     localStorage.removeItem(`${STORAGE_KEY}_config`);
                     onBack();
-                  }} 
+                  }}
                   className="w-full py-4 rounded-2xl bg-red-500 text-white font-black text-sm active:scale-95 transition-all"
                 >
                   SÍ, SALIR Y LIMPIAR
                 </button>
-                <button 
-                  onClick={() => setShowConfirmBack(false)} 
+                <button
+                  onClick={() => setShowConfirmBack(false)}
                   className="w-full py-4 rounded-2xl bg-slate-100 text-slate-600 font-black text-sm active:scale-95 transition-all"
                 >
                   CONTINUAR DISEÑANDO
