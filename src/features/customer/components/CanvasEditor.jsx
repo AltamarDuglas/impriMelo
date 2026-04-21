@@ -162,8 +162,10 @@ const CanvasEditor = ({ initialImages = [], onBack, onFinishDesign }) => {
         y: stagePointer.y - mousePointTo.y * newScale,
       };
 
+      // SOLID: Agrupamos actualizaciones para evitar renders intermedios que causen "vibración"
       setZoom(newScale);
       setStagePos(newPos);
+      
       lastDistRef.current = dist;
       lastCenterRef.current = center;
     }
@@ -257,8 +259,8 @@ const CanvasEditor = ({ initialImages = [], onBack, onFinishDesign }) => {
         </Stage>
       </div>
 
-      {/* Toolbar Flotante Inferior (Ajuste dinámico para Gestos y Botones) */}
-      <div className="absolute bottom-[calc(env(safe-area-inset-bottom,0px)+2.5rem)] inset-x-0 z-[100] flex justify-center px-4 pointer-events-none">
+      {/* Toolbar Flotante Inferior (Margen extra para evitar botones de sistema) */}
+      <div className="absolute bottom-[calc(env(safe-area-inset-bottom,0px)+4rem)] inset-x-0 z-[100] flex justify-center px-4 pointer-events-none">
         <div className="pointer-events-auto">
           <CanvasToolbar
             onAddImage={(files) => { 
