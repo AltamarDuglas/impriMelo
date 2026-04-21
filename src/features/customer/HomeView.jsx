@@ -11,6 +11,7 @@ import ConfigStep from './components/steps/ConfigStep';
 import CheckoutStep from './components/steps/CheckoutStep';
 import SuccessStep from './components/steps/SuccessStep';
 import CanvasEditor from './components/canvas/CanvasEditor';
+import PromoBanner from '../../components/shared/PromoBanner';
 
 pdfjsLib.GlobalWorkerOptions.workerSrc = pdfWorker;
 
@@ -196,6 +197,7 @@ const HomeView = () => {
         {step === 3 && <CheckoutStep config={config} totalPages={totalPages} currentPrice={currentPrice} onBack={() => setStep(2)} onConfirm={handleConfirmCheckout} isUploading={isUploading} />}
         {step === 4 && <SuccessStep files={files} config={config} currentPrice={currentPrice} onReset={() => setStep(1)} />}
       </AnimatePresence>
+      <PromoBanner />
     </div>
   );
 };
