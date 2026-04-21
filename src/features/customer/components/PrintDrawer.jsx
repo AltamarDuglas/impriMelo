@@ -11,7 +11,7 @@ const PrintDrawer = ({ isOpen, onClose, paperConfig, onPaperChange, onSendToPrin
           initial={{ y: '100%' }}
           animate={{ y: 0 }}
           exit={{ y: '100%' }}
-          className="absolute inset-x-0 bottom-0 z-[200] bg-white rounded-t-[2.5rem] p-6 shadow-2xl border-t border-slate-100 max-h-[70vh] overflow-y-auto"
+          className="absolute inset-x-0 bottom-0 z-[200] bg-white rounded-t-[2.5rem] p-6 pb-[calc(env(safe-area-inset-bottom,0px)+2rem)] shadow-2xl border-t border-slate-100 max-h-[80vh] overflow-y-auto"
         >
           <div className="w-12 h-1 bg-slate-200 rounded-full mx-auto mb-4 cursor-pointer" onClick={onClose} />
           <PaperConfig paperConfig={paperConfig} onPaperChange={onPaperChange} onBack={onClose} />
