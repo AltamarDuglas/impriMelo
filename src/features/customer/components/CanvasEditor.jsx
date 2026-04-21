@@ -169,6 +169,11 @@ const CanvasEditor = ({ initialImages = [], onBack, onFinishDesign }) => {
     }
   };
 
+  const handleTouchEnd = () => {
+    lastDistRef.current = 0;
+    lastCenterRef.current = null;
+  };
+
   const handleSendToPrint = async () => {
     setIsSending(true);
     setSelectedId(null);
@@ -211,12 +216,19 @@ const CanvasEditor = ({ initialImages = [], onBack, onFinishDesign }) => {
           width={stageSize.width} 
           height={stageSize.height}
           x={stagePos.x} y={stagePos.y} 
+          // SOLID: Deshabilitar drag si hay más de un dedo para evitar conflictos con el zoom
           draggable={true}
+          onDragStart={(e) => {
+            if (e.evt && e.evt.touches && e.evt.touches.length > 1) {
+              e.target.stopDrag();
+            }
+          }}
           onDragEnd={(e) => { if (e.target === stageRef.current) setStagePos({ x: e.target.x(), y: e.target.y() }); }}
           scaleX={zoom} scaleY={zoom} 
           onWheel={handleWheel} 
           onTouchStart={handleTouchStart}
           onTouchMove={handleTouchMove}
+          onTouchEnd={handleTouchEnd}
           onClick={handleStageClick} 
           onTap={handleStageClick}
         >
