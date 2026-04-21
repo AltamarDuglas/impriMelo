@@ -31,9 +31,27 @@ const HomeView = () => {
   const [totalPages, setTotalPages] = useState(0);
   const [pdfPagePreviews, setPdfPagePreviews] = useState([]);
   const [isRenderingPages, setIsRenderingPages] = useState(false);
+  const [restoredDesign, setRestoredDesign] = useState(null);
 
   const { token, isAuthenticated } = useAuth();
   const navigate = useNavigate();
+  
+  // --- RESTAURACIÓN POST-LOGIN ---
+  useEffect(() => {
+    const saved = localStorage.getItem('pending_melo_design');
+    if (saved) {
+      try {
+        const { elements, config: dConfig, previews: dPreviews } = JSON.parse(saved);
+        setRestoredDesign({ elements, config: dConfig });
+        setPreviews(dPreviews);
+        setStep(2);
+        // Limpiamos inmediatamente para que un F5 posterior limpie el lienzo
+        localStorage.removeItem('pending_melo_design');
+      } catch (err) {
+        console.error("Error restaurando diseño", err);
+      }
+    }
+  }, []);
 
   const getCustomPageCount = (rangeStr, maxPages) => {
     if (!rangeStr.trim()) return 0;
@@ -129,15 +147,31 @@ const HomeView = () => {
     } catch (err) { alert(err.message); } finally { setIsUploading(false); }
   };
 
-  const handleFinishDesign = (pdfBlob, designConfig) => {
+  const handleFinishDesign = (pdfBlob, designConfig, elements) => {
     const finalFile = new File([pdfBlob], `diseño-melo-${Date.now()}.pdf`, { type: 'application/pdf' });
-    setFiles([finalFile]); setPreviews([{ url: URL.createObjectURL(pdfBlob), isImage: false, name: finalFile.name, pages: 1 }]);
-    setConfig(prev => ({
-      ...prev, printMode: 'canvas',
+    setFiles([finalFile]); 
+    setPreviews([{ url: URL.createObjectURL(pdfBlob), isImage: false, name: finalFile.name, pages: 1 }]);
+    
+    const newConfig = {
+      ...config, 
+      printMode: 'canvas',
       paperType: designConfig.sizeId === 'carta' ? 'normal' : (designConfig.sizeId === 'a5' ? 'fotografico' : 'stickers'),
-      orientation: designConfig.orientation, copies: 1
-    }));
-    if (!isAuthenticated) { alert("Debes iniciar sesión para finalizar tu pedido."); navigate('/login'); return; }
+      orientation: designConfig.orientation, 
+      copies: 1
+    };
+    setConfig(newConfig);
+
+    if (!isAuthenticated) {
+      // Guardamos el estado para restaurarlo tras el login
+      localStorage.setItem('pending_melo_design', JSON.stringify({
+        elements,
+        config: designConfig,
+        previews: previews // Guardamos las previews originales para que CanvasEditor las procese si es necesario
+      }));
+      alert("Debes iniciar sesión para finalizar tu pedido."); 
+      navigate('/login'); 
+      return; 
+    }
     setStep(3);
   };
 
@@ -151,7 +185,13 @@ const HomeView = () => {
           <ConfigStep config={config} setConfig={setConfig} previews={previews} files={files} onBack={() => { setFiles([]); setPreviews([]); setStep(1); }} onConfirm={() => { if (!isAuthenticated) { navigate('/login'); return; } setStep(3); }} isUploading={isUploading} totalPages={totalPages} currentPrice={currentPrice} pdfPagePreviews={pdfPagePreviews} isRenderingPages={isRenderingPages} />
         )}
         {step === 2 && config.printMode !== 'pdf' && (
-          <CanvasEditor initialImages={previews.filter(p => p.isImage).map(p => p.url)} onBack={() => { setFiles([]); setPreviews([]); setStep(1); }} onFinishDesign={handleFinishDesign} />
+          <CanvasEditor 
+            initialImages={restoredDesign ? [] : previews.filter(p => p.isImage).map(p => p.url)} 
+            initialElements={restoredDesign?.elements || []}
+            initialConfig={restoredDesign?.config}
+            onBack={() => { setFiles([]); setPreviews([]); setStep(1); setRestoredDesign(null); }} 
+            onFinishDesign={handleFinishDesign} 
+          />
         )}
         {step === 3 && <CheckoutStep config={config} totalPages={totalPages} currentPrice={currentPrice} onBack={() => setStep(2)} onConfirm={handleConfirmCheckout} isUploading={isUploading} />}
         {step === 4 && <SuccessStep files={files} config={config} currentPrice={currentPrice} onReset={() => setStep(1)} />}

@@ -21,16 +21,10 @@ const STORAGE_KEY = 'melo_canvas_design';
  * SOLID: Orquestación Limpia.
  * Cambios: Layout absoluto, soporte para Safe Areas, estética de Isla Flotante.
  */
-const CanvasEditor = ({ initialImages = [], onBack, onFinishDesign }) => {
-  const [paperConfig, setPaperConfig] = useState(() => {
-    const saved = localStorage.getItem(`${STORAGE_KEY}_config`);
-    return saved ? JSON.parse(saved) : { sizeId: 'carta', orientation: 'portrait' };
-  });
+const CanvasEditor = ({ initialImages = [], initialElements = [], initialConfig = null, onBack, onFinishDesign }) => {
+  const [paperConfig, setPaperConfig] = useState(initialConfig || { sizeId: 'carta', orientation: 'portrait' });
 
-  const [elements, setElements] = useState(() => {
-    const saved = localStorage.getItem(STORAGE_KEY);
-    return saved ? JSON.parse(saved) : [];
-  });
+  const [elements, setElements] = useState(initialElements);
 
   const [selectedId, setSelectedId] = useState(null);
   const [zoom, setZoom] = useState(0.6);
@@ -84,12 +78,6 @@ const CanvasEditor = ({ initialImages = [], onBack, onFinishDesign }) => {
       elementsToHide.forEach(el => el.style.display = '');
     };
   }, []);
-
-  // --- PERSISTENCIA ---
-  useEffect(() => {
-    localStorage.setItem(STORAGE_KEY, JSON.stringify(elements));
-    localStorage.setItem(`${STORAGE_KEY}_config`, JSON.stringify(paperConfig));
-  }, [elements, paperConfig]);
 
   const selectedPaper = useMemo(() => PAPER_SIZES.find(p => p.id === paperConfig.sizeId), [paperConfig.sizeId]);
 
@@ -196,8 +184,11 @@ const CanvasEditor = ({ initialImages = [], onBack, onFinishDesign }) => {
     const pointer = stage.getPointerPosition();
     const mp = { x: (pointer.x - stage.x()) / oldScale, y: (pointer.y - stage.y()) / oldScale };
     const ns = Math.min(3, Math.max(0.3, e.evt.deltaY > 0 ? oldScale / 1.05 : oldScale * 1.05));
-    setZoom(ns);
-    setStagePos({ x: pointer.x - mp.x * ns, y: pointer.y - mp.y * ns });
+    
+    requestAnimationFrame(() => {
+      setZoom(ns);
+      setStagePos({ x: pointer.x - mp.x * ns, y: pointer.y - mp.y * ns });
+    });
   };
 
   // --- MANEJO DE ZOOM POR PELLIZCO (Mobile Pinch Zoom) ---
@@ -242,10 +233,11 @@ const CanvasEditor = ({ initialImages = [], onBack, onFinishDesign }) => {
         y: stagePointer.y - mousePointTo.y * newScale,
       };
 
-      // SOLID: Agrupamos actualizaciones para evitar renders intermedios que causen "vibración"
-      setZoom(newScale);
-      setStagePos(newPos);
-
+      requestAnimationFrame(() => {
+        setZoom(newScale);
+        setStagePos(newPos);
+      });
+      
       lastDistRef.current = dist;
       lastCenterRef.current = center;
     }
@@ -262,7 +254,7 @@ const CanvasEditor = ({ initialImages = [], onBack, onFinishDesign }) => {
     await new Promise(r => setTimeout(r, 200));
     const blob = generatePDFBlob(stageRef, { widthMm: paperWidthMm, heightMm: paperHeightMm, orientation: paperConfig.orientation });
     if (!blob) { alert('Error generando el diseño.'); setIsSending(false); return; }
-    if (onFinishDesign) onFinishDesign(blob, { sizeId: paperConfig.sizeId, orientation: paperConfig.orientation, paperWidthMm, paperHeightMm });
+    if (onFinishDesign) onFinishDesign(blob, { sizeId: paperConfig.sizeId, orientation: paperConfig.orientation, paperWidthMm, paperHeightMm }, elements);
     setIsSending(false);
   };
 
@@ -302,27 +294,27 @@ const CanvasEditor = ({ initialImages = [], onBack, onFinishDesign }) => {
 
       {/* Contenedor del Canvas (Llenado total) */}
       <div ref={canvasContainerRef} className="flex-1 w-full h-full cursor-grab active:cursor-grabbing touch-none">
-        {useMemo(() => (
-          <Stage
-            ref={stageRef}
-            width={stageSize.width}
-            height={stageSize.height}
-            x={stagePos.x} y={stagePos.y}
-            draggable={true}
-            onDragStart={(e) => {
-              if (e.evt && e.evt.touches && e.evt.touches.length > 1) {
-                e.target.stopDrag();
-              }
-            }}
-            onDragEnd={(e) => { if (e.target === stageRef.current) setStagePos({ x: e.target.x(), y: e.target.y() }); }}
-            scaleX={zoom} scaleY={zoom}
-            onWheel={handleWheel}
-            onTouchStart={handleTouchStart}
-            onTouchMove={handleTouchMove}
-            onTouchEnd={handleTouchEnd}
-            onClick={handleStageClick}
-            onTap={handleStageClick}
-          >
+        <Stage
+          ref={stageRef}
+          width={stageSize.width}
+          height={stageSize.height}
+          x={stagePos.x} y={stagePos.y}
+          draggable={true}
+          onDragStart={(e) => {
+            if (e.evt && e.evt.touches && e.evt.touches.length > 1) {
+              e.target.stopDrag();
+            }
+          }}
+          onDragEnd={(e) => { if (e.target === stageRef.current) setStagePos({ x: e.target.x(), y: e.target.y() }); }}
+          scaleX={zoom} scaleY={zoom}
+          onWheel={handleWheel}
+          onTouchStart={handleTouchStart}
+          onTouchMove={handleTouchMove}
+          onTouchEnd={handleTouchEnd}
+          onClick={handleStageClick}
+          onTap={handleStageClick}
+        >
+          {useMemo(() => (
             <Layer>
               <Rect
                 x={-5} y={-5} width={canvasWidth + 10} height={canvasHeight + 10}
@@ -357,8 +349,8 @@ const CanvasEditor = ({ initialImages = [], onBack, onFinishDesign }) => {
                 <Line key={i} points={[l.x1, l.y1, l.x2, l.y2]} stroke="#ec4899" strokeWidth={1.5 / zoom} dash={[4 / zoom, 4 / zoom]} listening={false} />
               ))}
             </Layer>
-          </Stage>
-        ), [stageSize, stagePos, zoom, canvasWidth, canvasHeight, elements, selectedId, guideLines])}
+          ), [canvasWidth, canvasHeight, elements, selectedId, guideLines, zoom])}
+        </Stage>
       </div>
 
       {/* Toolbar Flotante Inferior (Ajuste dinámico para Gestos y Botones) */}
