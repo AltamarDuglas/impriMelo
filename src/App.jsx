@@ -4,6 +4,7 @@ import Layout from './components/shared/Layout';
 import HomeView from './features/customer/HomeView';
 import AdminDashboard from './features/admin/AdminDashboard';
 import HistoryView from './features/customer/HistoryView';
+import PaperReference from './features/customer/PaperReference';
 
 import { AuthProvider } from './context/AuthContext';
 import LoginView from './features/auth/LoginView';
@@ -30,6 +31,7 @@ function App() {
             
             {/* Ruta para administrador: Gestión de pedidos y conversión PDF */}
             <Route path="/admin" element={<AdminDashboard />} />
+            <Route path="/referencia-papel" element={<PaperReference />} />
             
           </Routes>
         </Layout>

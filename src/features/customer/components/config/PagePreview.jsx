@@ -1,6 +1,7 @@
 import React from 'react';
 import { motion } from 'framer-motion';
 import { ScrollText, ChevronLeft, ChevronRight } from 'lucide-react';
+import PdfSinglePage from './PdfSinglePage';
 
 /**
  * Componente WYSIWYG de Alta Precisión.
@@ -34,32 +35,29 @@ const PagePreview = ({ config, previews, pdfPagePreviews, isRenderingPages, setC
   const drawableWmm = PAGE_W_MM - (MARGIN_X_MM * 2);
   const drawableHmm = PAGE_H_MM - (MARGIN_Y_MM * 2);
 
-  // Lógica de generación de HOJAS
-  // Lógica de generación de HOJAS
   // Lógica de generación de HOJAS / SLOTS
   const isPhoto = paperType === 'fotografico';
   const itemsPerPage = (isPhoto && printMode === 'individual') ? 1 : (isPhoto ? 2 : 1);
-  const numPages = printMode === 'individual' ? Math.ceil(previews.length / itemsPerPage) : 1;
+  
+  // Cálculo de páginas totales unificado
+  const numPages = printMode === 'individual' 
+    ? Math.ceil(previews.length / itemsPerPage) 
+    : (printMode === 'pdf' && previews.length > 0 ? previews[0].pages : 1);
+  
   const pageArray = Array.from({ length: numPages }).map((_, i) => i);
 
-  // Lógica de mejor ajuste para TARJETAS
+  // Lógica de mejor ajuste para TARJETAS (Forzamos 90x50 Horizontal)
   const cardDim1 = 90;
   const cardDim2 = 50;
-  let bestCardLayout = { cols: 0, rows: 0, cw: 0, ch: 0, count: 0 };
+  let bestCardLayout = { cols: 0, rows: 0, cw: cardDim1, ch: cardDim2, count: 0 };
 
-  for (const [cw, ch] of [[cardDim1, cardDim2], [cardDim2, cardDim1]]) {
-    const c = Math.floor((drawableWmm + GAP_MM) / (cw + GAP_MM));
-    const r = Math.floor((drawableHmm + GAP_MM) / (ch + GAP_MM));
-    if (c * r > bestCardLayout.count) {
-      bestCardLayout = { cols: c, rows: r, cw, ch, count: c * r };
-    }
-  }
+  const c = Math.floor((drawableWmm + GAP_MM) / (cardDim1 + GAP_MM));
+  const r = Math.floor((drawableHmm + GAP_MM) / (cardDim2 + GAP_MM));
+  bestCardLayout = { cols: c, rows: r, cw: cardDim1, ch: cardDim2, count: c * r };
 
   // Lógica para MOSAICO
   const tileWmm = (drawableWmm - (mosaicCols - 1) * GAP_MM) / mosaicCols;
   const mosaicRows = Math.floor((drawableHmm + GAP_MM) / (tileWmm + GAP_MM));
-
-
 
   const handleScroll = (e) => {
     const scrollLeft = e.target.scrollLeft;
@@ -80,7 +78,7 @@ const PagePreview = ({ config, previews, pdfPagePreviews, isRenderingPages, setC
 
 
   return (
-    <div className="flex flex-col items-center w-full pt-0">
+    <div className="flex flex-col items-center w-full h-full pt-0">
       {/* Contenedor con Scroll HORIZONTAL - Galería Nativa */}
       <div className="w-full relative group/preview px-0">
         {/* Botones de Navegación Lateral (Premium Glass) */}
@@ -131,9 +129,7 @@ const PagePreview = ({ config, previews, pdfPagePreviews, isRenderingPages, setC
             >
               <div
                 className={`bg-white shadow-[0_10px_30px_rgba(0,0,0,0.15)] transition-all duration-500 overflow-hidden relative mx-auto rounded-sm ${
-                  (isPhoto && printMode === 'individual')
-                    ? (isLandscape ? 'aspect-[1.414/1] w-full' : 'aspect-[1/1.414] w-[80%] md:w-[65%]')
-                    : (isLandscape ? 'aspect-[1.414/1] w-full' : 'aspect-[1/1.414] w-[80%] md:w-[65%]')
+                  isLandscape ? 'aspect-[1.414/1] w-full' : 'aspect-[1/1.414] w-[80%] md:w-[65%]'
                 }`}
                 style={{ padding: `${(MARGIN_Y_MM / PAGE_H_MM) * 100}% ${(MARGIN_X_MM / PAGE_W_MM) * 100}%` }}
               >
@@ -144,10 +140,21 @@ const PagePreview = ({ config, previews, pdfPagePreviews, isRenderingPages, setC
                     bottom: `${(MARGIN_Y_MM / PAGE_H_MM) * 100}%`,
                     left: `${(MARGIN_X_MM / PAGE_W_MM) * 100}%`,
                     right: `${(MARGIN_X_MM / PAGE_W_MM) * 100}%`,
-                    opacity: 0.6
+                    opacity: 0.6,
+                    zIndex: 20
                   }}
                 />
 
+                {/* MODO PDF: Integrado en la galería horizontal */}
+                {printMode === 'pdf' && previews.length > 0 && (
+                  <PdfSinglePage 
+                    file={previews[0].file} 
+                    pageNum={pageIdx + 1} 
+                    orientation={config.orientation} 
+                  />
+                )}
+
+                {/* MODO INDIVIDUAL / IMÁGENES */}
                 {printMode === 'individual' && previews.length > 0 && (
                   <div className="w-full h-full flex flex-col items-center justify-center gap-1 overflow-hidden relative">
                     {isPhoto ? (
@@ -161,9 +168,6 @@ const PagePreview = ({ config, previews, pdfPagePreviews, isRenderingPages, setC
                             </div>
                           </div>
                         ))}
-
-                        {/* Cota Interna del Slot */}
-                        {/* Medidas eliminadas por petición */}
                       </div>
                     ) : (
                         <div className="w-full h-full flex items-center justify-center p-2">
@@ -173,7 +177,7 @@ const PagePreview = ({ config, previews, pdfPagePreviews, isRenderingPages, setC
                   </div>
                 )}
 
-                {/* Tarjetas, Mosaico y PDF siguen igual */}
+                {/* Tarjetas y Mosaico */}
                 {pageIdx === 0 && printMode === 'tarjeta' && previews.length > 0 && (
                   <>
                     <div
@@ -235,41 +239,6 @@ const PagePreview = ({ config, previews, pdfPagePreviews, isRenderingPages, setC
                   </>
                 )}
 
-                {pageIdx === 0 && printMode === 'pdf' && previews.length > 0 && (
-                  <div className="w-full h-full flex items-center justify-center bg-white">
-                    {isRenderingPages && (
-                      <div className="animate-spin w-8 h-8 border-4 border-pink-400 border-t-transparent rounded-full" />
-                    )}
-
-                    {!isRenderingPages && pdfPagePreviews.length === 1 && (
-                      <img
-                        src={pdfPagePreviews[0].url}
-                        alt="Página 1"
-                        className="w-full h-full object-contain"
-                      />
-                    )}
-
-                    {!isRenderingPages && pdfPagePreviews.length > 1 && (
-                      <div
-                        className="w-full h-full grid gap-[3%] p-[3%]"
-                        style={{ gridTemplateColumns: 'repeat(2, 1fr)' }}
-                      >
-                        {pdfPagePreviews.map(({ pageNum, url }) => (
-                          <div key={pageNum} className="relative w-full h-full">
-                            <img
-                              src={url}
-                              alt={`Página ${pageNum}`}
-                              className="w-full h-full object-contain shadow-sm"
-                            />
-                            <span className="absolute bottom-0.5 right-0.5 bg-black/40 text-white text-[7px] font-bold px-1 py-0.5 rounded leading-none">
-                              {pageNum}
-                            </span>
-                          </div>
-                        ))}
-                      </div>
-                    )}
-                  </div>
-                )}
               </div>
 
               {/* Indicador de Hoja flotante */}

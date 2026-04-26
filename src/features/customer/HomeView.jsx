@@ -11,6 +11,7 @@ import ConfigStep from './components/steps/ConfigStep';
 import CheckoutStep from './components/steps/CheckoutStep';
 import SuccessStep from './components/steps/SuccessStep';
 import CanvasEditor from './components/canvas/CanvasEditor';
+import PaperSelectStep from './components/steps/PaperSelectStep';
 
 pdfjsLib.GlobalWorkerOptions.workerSrc = pdfWorker;
 
@@ -104,16 +105,28 @@ const HomeView = () => {
               thumbnail = canvas.toDataURL('image/jpeg', 0.8);
             } catch (err) { console.error("Error leyendo PDF", err); }
           }
-          return { url: isPdf ? thumbnail : (f.type.startsWith('image/') ? URL.createObjectURL(f) : null), isImage: f.type.startsWith('image/'), name: f.name, pages: pages };
+          return { 
+            url: isPdf ? thumbnail : (f.type.startsWith('image/') ? URL.createObjectURL(f) : null), 
+            isImage: f.type.startsWith('image/'), 
+            name: f.name, 
+            pages: pages,
+            file: f // Guardamos el archivo original para renderizado bajo demanda
+          };
         }));
 
         if (newPreviews.some(p => !p.isImage)) {
           setFiles([selectedFiles[0]]); setPreviews([newPreviews[0]]);
           setConfig(prev => ({ ...prev, printMode: 'pdf', pdfRange: 'all', pdfCustomRange: '', copies: 1 }));
         } else {
-          setFiles(prev => [...prev, ...selectedFiles]); setPreviews(prev => [...prev, ...newPreviews]);
+          setFiles(prev => [...prev, ...selectedFiles]); 
+          setPreviews(prev => [...prev, ...newPreviews]);
+          // IMPORTANTE: Asegurar que el modo sea 'canvas' para abrir el lienzo
+          setConfig(prev => ({ ...prev, printMode: 'canvas' }));
         }
-        if (step === 1) setStep(2);
+        if (step === 1) {
+          const isPdf = newPreviews.some(p => !p.isImage);
+          setStep(isPdf ? 2 : 1.5);
+        }
       } catch (err) { alert("Error procesando los archivos."); } finally { setIsUploading(false); }
     }
   };
@@ -178,9 +191,28 @@ const HomeView = () => {
   const currentPrice = totalPages * (PRICES[config.paperType] || 1000);
 
   return (
-    <div className="h-screen w-full flex flex-col px-0 py-4 md:p-6 overflow-hidden relative">
+    <div className="h-screen w-full flex flex-col px-0 py-4 md:p-6 overflow-y-auto relative custom-scrollbar">
       <AnimatePresence mode="wait">
         {step === 1 && <UploadStep onFileChange={handleFileChange} isUploading={isUploading} />}
+        
+        {step === 1.5 && (
+          <PaperSelectStep 
+            onBack={() => setStep(1)}
+            onSelect={(paperId) => {
+              // Mapear selección a configuración de negocio
+              const sizeId = paperId === 'a4_foto' ? 'a4' : (paperId === 'a5_foto' ? 'a5' : 'carta');
+              const paperType = paperId === 'carta' ? 'normal' : 'fotografico';
+              
+              setConfig(prev => ({ 
+                ...prev, 
+                paperType, 
+                sizeId // Usamos esto para el CanvasEditor
+              }));
+              setStep(2);
+            }}
+          />
+        )}
+
         {step === 2 && config.printMode === 'pdf' && (
           <ConfigStep config={config} setConfig={setConfig} previews={previews} files={files} onBack={() => { setFiles([]); setPreviews([]); setStep(1); }} onConfirm={() => { if (!isAuthenticated) { navigate('/login'); return; } setStep(3); }} isUploading={isUploading} totalPages={totalPages} currentPrice={currentPrice} pdfPagePreviews={pdfPagePreviews} isRenderingPages={isRenderingPages} />
         )}
@@ -188,7 +220,7 @@ const HomeView = () => {
           <CanvasEditor 
             initialImages={restoredDesign ? [] : previews.filter(p => p.isImage).map(p => p.url)} 
             initialElements={restoredDesign?.elements || []}
-            initialConfig={restoredDesign?.config}
+            initialConfig={restoredDesign?.config || { sizeId: config.sizeId, orientation: 'portrait' }}
             onBack={() => { setFiles([]); setPreviews([]); setStep(1); setRestoredDesign(null); }} 
             onFinishDesign={handleFinishDesign} 
           />

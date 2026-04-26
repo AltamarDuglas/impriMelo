@@ -319,7 +319,13 @@ const AdminDashboard = () => {
                   }`}
                 >
                   <div className="flex gap-4">
-                    <img src={`http://127.0.0.1:8000/uploads/${order.image_path.split(',')[0]}`} alt="" className="w-16 h-16 rounded-lg object-cover shadow-sm bg-slate-100" />
+                    <div className="w-16 h-16 rounded-lg bg-slate-100 flex items-center justify-center shadow-sm overflow-hidden shrink-0">
+                      {(order.print_mode === 'pdf' || order.print_mode === 'canvas') ? (
+                        <FileText className="w-8 h-8 text-blue-500" />
+                      ) : (
+                        <img src={`http://127.0.0.1:8000/uploads/${order.image_path.split(',')[0]}`} alt="" className="w-full h-full object-cover" />
+                      )}
+                    </div>
                     <div className="flex-1 min-w-0">
                       <div className="flex justify-between items-start">
                         <p className="text-sm font-bold text-slate-900 truncate pr-2">
@@ -431,7 +437,7 @@ const AdminDashboard = () => {
                 - PDF: Mostramos botón de descarga directa (el PDF ya fue procesado al subirse)
                 - Imagen: Usamos PdfConverter para aplicar pipeline sRGB con configuración del pedido
               */}
-              {selectedOrder.print_mode === 'pdf' ? (
+              { (selectedOrder.print_mode === 'pdf' || selectedOrder.print_mode === 'canvas') ? (
                 // --- Flujo para pedidos de tipo PDF ---
                 <div className="premium-card p-10 flex flex-col items-center justify-center gap-6 text-center">
                   <div className="w-20 h-20 bg-blue-50 rounded-[2rem] flex items-center justify-center">
@@ -440,8 +446,9 @@ const AdminDashboard = () => {
                   <div className="space-y-2">
                     <h3 className="text-xl font-black text-slate-900">PDF Listo para Imprimir</h3>
                     <p className="text-sm text-slate-400 font-medium max-w-xs">
-                      Este pedido fue enviado como PDF. El archivo ya está procesado con las páginas seleccionadas 
-                      por el cliente ({selectedOrder.pdf_page_range === 'all' ? 'todas las páginas' : selectedOrder.pdf_page_range}).
+                      {selectedOrder.print_mode === 'canvas' 
+                        ? 'Este pedido fue diseñado en el lienzo interactivo. El PDF ya contiene todas las imágenes acomodadas por el cliente.' 
+                        : `Este pedido fue enviado como PDF. El archivo ya está procesado con las páginas seleccionadas (${selectedOrder.pdf_page_range === 'all' ? 'todas' : selectedOrder.pdf_page_range}).`}
                     </p>
                     <p className="text-xs font-bold text-blue-500 uppercase tracking-widest">
                       {selectedOrder.copies} {selectedOrder.copies === 1 ? 'copia' : 'copias'} • {selectedOrder.paper_type.replace('_', ' ')}

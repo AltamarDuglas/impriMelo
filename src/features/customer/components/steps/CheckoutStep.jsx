@@ -36,12 +36,12 @@ const CheckoutStep = ({ config, totalPages, currentPrice, onBack, onConfirm, isU
       initial={{ opacity: 0, x: 20 }}
       animate={{ opacity: 1, x: 0 }}
       exit={{ opacity: 0, x: -20 }}
-      className="max-w-4xl mx-auto h-full flex items-center overflow-hidden py-10"
+      className="max-w-4xl mx-auto py-4 md:py-10 px-4"
     >
-      <div className="grid grid-cols-1 md:grid-cols-2 gap-6 w-full">
+      <div className="grid grid-cols-1 md:grid-cols-2 gap-4 md:gap-8 w-full">
         {/* Lado Izquierdo: Datos de Pago */}
         <div className="space-y-4">
-          <div className="glass-card-thick p-6 rounded-[2.5rem] shadow-2xl relative overflow-hidden border border-white/60">
+          <div className="glass-card-thick p-5 md:p-8 rounded-3xl shadow-2xl relative overflow-hidden border border-white/60">
              <div className="absolute top-0 right-0 p-2 opacity-5">
                 <CreditCard className="w-24 h-24 rotate-12 text-slate-900" />
              </div>
@@ -73,7 +73,7 @@ const CheckoutStep = ({ config, totalPages, currentPrice, onBack, onConfirm, isU
                 <Upload className="w-3 h-3 text-pink-500" /> Adjuntar Comprobante
              </p>
              <label className="relative group cursor-pointer block">
-                <div className={`aspect-[2/1] rounded-[2rem] border-2 border-dashed transition-all flex flex-col items-center justify-center gap-2 ${
+                <div className={`aspect-[2/1] rounded-3xl border-2 border-dashed transition-all flex flex-col items-center justify-center gap-2 ${
                   screenshotPreview ? 'border-green-400 bg-green-50/30' : 'border-white/60 bg-white/40 backdrop-blur-sm group-hover:bg-white/60'
                 }`}>
                    {screenshotPreview ? (
@@ -93,7 +93,7 @@ const CheckoutStep = ({ config, totalPages, currentPrice, onBack, onConfirm, isU
         </div>
 
         {/* Lado Derecho: Formulario de Envío */}
-        <div className="glass-card-thick p-8 shadow-xl flex flex-col justify-between">
+        <div className="glass-card-thick p-6 md:p-8 shadow-xl flex flex-col justify-between">
           <h3 className="text-xl font-black text-slate-800 mb-6 flex items-center gap-2">
              <MapPin className="text-blue-500 w-5 h-5" /> Datos de Envío
           </h3>

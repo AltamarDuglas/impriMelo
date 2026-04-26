@@ -291,7 +291,7 @@ const CanvasEditor = ({ initialImages = [], initialElements = [], initialConfig 
     setIsSending(true);
     setSelectedId(null);
     await new Promise(r => setTimeout(r, 200));
-    const blob = generatePDFBlob(stageRef, { widthMm: paperWidthMm, heightMm: paperHeightMm, orientation: paperConfig.orientation });
+    const blob = generatePDFBlob(stageRef, { widthMm: paperWidthMm, heightMm: paperHeightMm, orientation: paperConfig.orientation }, canvasWidth, canvasHeight);
     if (!blob) { alert('Error generando el diseño.'); setIsSending(false); return; }
     if (onFinishDesign) onFinishDesign(blob, { sizeId: paperConfig.sizeId, orientation: paperConfig.orientation, paperWidthMm, paperHeightMm }, elements);
     setIsSending(false);
